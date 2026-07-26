@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>برنامج الإحالة — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function fmtDate(v) {
+  if (!v) return '—';
+  const d = v._seconds ? new Date(v._seconds * 1000) : new Date(v);
+  return isNaN(d) ? '—' : d.toLocaleString('ar-DZ');
+}
+const STATUS_LABELS = { pending: 'قيد الانتظار', approved: 'تم الدفع ✅', rejected: 'مرفوض ❌' };
+const STATUS_TONE = { pending: 'neutral', approved: 'ok', rejected: 'danger' };
+
+(async function () {
+  const me = await RB_APP.initShell('referral');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = '<div class="app-skeleton">جاري التحميل...</div>';
+
+  let summary = null;
+  try {
+    const res = await fetch('/api/dashboard/referral/summary', { credentials: 'same-origin' });
+    summary = await res.json();
+    if (!res.ok) throw new Error(summary.error || 'تعذّر جلب بيانات الإحالة');
+  } catch (err) {
+    content.innerHTML = `<div class="app-error-text">${RB_APP.friendlyError ? RB_APP.friendlyError(err) : err.message}</div>`;
+    return;
+  }
+
+  const referralLink = `${location.origin}/register?ref=${encodeURIComponent(summary.referralCode || '')}`;
+
+  content.innerHTML = `
+    <div class="app-kpi-grid">
+      <div class="app-kpi">
+        <div class="app-kpi-label">رصيدك الحالي</div>
+        <div class="app-kpi-value num">${summary.walletBalance.toLocaleString('ar')} <span style="font-size:.9rem;color:var(--a-muted);font-weight:500">دج</span></div>
+        <div class="app-kpi-sub">يُستعمل تلقائيًا فـ اشتراكك القادم، أو تسحبه كاش (حد أدنى ${summary.minWithdrawalAmount.toLocaleString('ar')} دج)</div>
+      </div>
+      <div class="app-kpi">
+        <div class="app-kpi-label">عدد التجار المدعوين</div>
+        <div class="app-kpi-value num">${summary.referredCount}</div>
+      </div>
+      <div class="app-kpi">
+        <div class="app-kpi-label">نسبة العمولة</div>
+        <div class="app-kpi-value" style="font-size:1.1rem">30% أول شهر، ثم 20% لـ 11 شهر</div>
+      </div>
+    </div>
+
+    <div class="app-card">
+      <div class="app-card-head"><h3>🎁 كود الدعوة الخاص بك</h3></div>
+      <p style="color:var(--a-muted);margin:0 0 12px">شارك هذا الكود أو الرابط مع تجار آخرين. عندما يسجّلون به ويشتركون بباقة مدفوعة، تربح عمولة تلقائيًا.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <div class="app-field" style="margin-bottom:0;min-width:180px"><label>الكود</label><input id="refCode" type="text" readonly value="${escapeHtml(summary.referralCode || '—')}" /></div>
+        <div class="app-field" style="margin-bottom:0;flex:1;min-width:260px"><label>رابط الدعوة</label><input id="refLink" type="text" readonly value="${escapeHtml(referralLink)}" /></div>
+        <button id="copyLinkBtn" class="app-btn app-btn-primary" style="align-self:flex-end">نسخ الرابط</button>
+      </div>
+      <span id="copyMsg" style="display:none;color:var(--a-success);font-size:.85rem;margin-top:8px"></span>
+    </div>
+
+    <div class="app-card">
+      <div class="app-card-head"><h3>💸 طلب سحب رصيد</h3></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
+        <div class="app-field" style="margin-bottom:0"><label>المبلغ (دج)</label><input id="wAmount" type="number" min="${summary.minWithdrawalAmount}" placeholder="${summary.minWithdrawalAmount}" /></div>
+        <div class="app-field" style="margin-bottom:0">
+          <label>الطريقة</label>
+          <select id="wMethod"><option value="ccp">CCP</option><option value="baridimob">BaridiMob</option></select>
+        </div>
+        <div class="app-field" style="margin-bottom:0"><label>رقم الحساب</label><input id="wAccount" type="text" placeholder="رقم CCP أو BaridiMob" /></div>
+        <div class="app-field" style="margin-bottom:0"><label>رقم الهاتف</label><input id="wPhone" type="tel" placeholder="0555123456" /></div>
+      </div>
+      <button id="wSubmit" class="app-btn app-btn-primary">إرسال طلب السحب</button>
+      <span id="wMsg" class="app-error-text" style="display:none;margin-inline-start:10px"></span>
+    </div>
+
+    <div class="app-card">
+      <div class="app-card-head"><h3>سجل العمولات</h3></div>
+      <div id="commissionsWrap"><div class="app-skeleton">جاري التحميل...</div></div>
+    </div>
+
+    <div class="app-card">
+      <div class="app-card-head"><h3>طلبات السحب السابقة</h3></div>
+      <div id="withdrawalsWrap"><div class="app-skeleton">جاري التحميل...</div></div>
+    </div>
+  `;
+
+  document.getElementById('copyLinkBtn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      const msg = document.getElementById('copyMsg');
+      msg.textContent = '✅ تم نسخ الرابط';
+      msg.style.display = 'inline';
+      setTimeout(() => { msg.style.display = 'none'; }, 2500);
+    } catch {
+      document.getElementById('refLink').select();
+    }
+  });
+
+  async function loadCommissions() {
+    const wrap = document.getElementById('commissionsWrap');
+    try {
+      const res = await fetch('/api/dashboard/referral/commissions', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر جلب سجل العمولات');
+      if (!data.commissions.length) {
+        wrap.innerHTML = `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد عمولات بعد</h3><p>شارك كود الدعوة تاعك حتى تبدأ تربح.</p></div>`;
+        return;
+      }
+      wrap.innerHTML = `
+        <table class="app-table">
+          <thead><tr><th>المتجر المدعو</th><th>الدفعة رقم</th><th>النسبة</th><th>المبلغ</th><th>التاريخ</th></tr></thead>
+          <tbody>
+            ${data.commissions.map((c) => `
+              <tr>
+                <td>${escapeHtml(c.referredStoreName || c.referredStoreId)}</td>
+                <td class="num">${c.paymentNumber}</td>
+                <td class="num">${c.percent}%</td>
+                <td class="num">${c.amount.toLocaleString('ar')} دج</td>
+                <td>${fmtDate(c.createdAt)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } catch (err) {
+      wrap.innerHTML = `<div class="app-error-text">${err.message}</div>`;
+    }
+  }
+
+  async function loadWithdrawals() {
+    const wrap = document.getElementById('withdrawalsWrap');
+    try {
+      const res = await fetch('/api/dashboard/referral/withdrawals', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر جلب طلبات السحب');
+      if (!data.withdrawals.length) {
+        wrap.innerHTML = `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد طلبات سحب بعد</h3></div>`;
+        return;
+      }
+      wrap.innerHTML = `
+        <table class="app-table">
+          <thead><tr><th>المبلغ</th><th>الطريقة</th><th>رقم الحساب</th><th>الحالة</th><th>التاريخ</th></tr></thead>
+          <tbody>
+            ${data.withdrawals.map((w) => `
+              <tr>
+                <td class="num">${w.amount.toLocaleString('ar')} دج</td>
+                <td>${w.method === 'ccp' ? 'CCP' : 'BaridiMob'}</td>
+                <td>${escapeHtml(w.accountNumber)}</td>
+                <td><span class="app-status-pill ${STATUS_TONE[w.status] || 'neutral'}">${STATUS_LABELS[w.status] || w.status}</span></td>
+                <td>${fmtDate(w.createdAt)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } catch (err) {
+      wrap.innerHTML = `<div class="app-error-text">${err.message}</div>`;
+    }
+  }
+
+  document.getElementById('wSubmit').addEventListener('click', async () => {
+    const msg = document.getElementById('wMsg');
+    msg.style.display = 'none';
+    const amount = Number(document.getElementById('wAmount').value);
+    const method = document.getElementById('wMethod').value;
+    const accountNumber = document.getElementById('wAccount').value.trim();
+    const phone = document.getElementById('wPhone').value.trim();
+    try {
+      const res = await fetch('/api/dashboard/referral/withdrawals', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, method, accountNumber, phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر إرسال طلب السحب');
+      document.getElementById('wAmount').value = '';
+      document.getElementById('wAccount').value = '';
+      document.getElementById('wPhone').value = '';
+      loadWithdrawals();
+    } catch (err) {
+      msg.textContent = `⚠️ ${err.message}`;
+      msg.style.display = 'inline';
+    }
+  });
+
+  loadCommissions();
+  loadWithdrawals();
+})();
+</script>
+</body>
+</html>

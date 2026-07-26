@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المساعد الذكي والرد الصوتي — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+(async function () {
+  const me = await RB_APP.initShell('aiAssistant');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="app-btn app-btn-primary tabBtn" data-tab="settings">إعدادات المساعد والصوت</button>
+      <button class="app-btn app-btn-ghost tabBtn" data-tab="ask">اسأل المساعد</button>
+      <button class="app-btn app-btn-ghost tabBtn" data-tab="generate">توليد محتوى تسويقي</button>
+    </div>
+    <div id="tabContent"><div class="app-card"><div class="app-skeleton">جاري التحميل...</div></div></div>
+  `;
+
+  document.querySelectorAll('.tabBtn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tabBtn').forEach((b) => b.className = 'app-btn app-btn-ghost tabBtn');
+      btn.className = 'app-btn app-btn-primary tabBtn';
+      showTab(btn.dataset.tab);
+    });
+  });
+
+  let aiSettingsCache = null;
+  let aiEnabledCache = true;
+
+  async function fetchSettings() {
+    if (aiSettingsCache) return aiSettingsCache;
+    const res = await fetch('/api/dashboard/ai-settings', { credentials: 'same-origin' });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'تعذّر جلب الإعدادات');
+    aiSettingsCache = d.settings;
+    aiEnabledCache = d.aiEnabled;
+    return aiSettingsCache;
+  }
+
+  async function showTab(tab) {
+    const wrap = document.getElementById('tabContent');
+    wrap.innerHTML = `<div class="app-card"><div class="app-skeleton">جاري التحميل...</div></div>`;
+    try {
+      if (tab === 'settings') return renderSettings(wrap);
+      if (tab === 'ask') return renderAsk(wrap);
+      if (tab === 'generate') return renderGenerate(wrap);
+    } catch (err) {
+      wrap.innerHTML = `<div class="app-card"><div class="app-error-text">${RB_APP.friendlyError(err)}</div></div>`;
+    }
+  }
+
+  // ===== تبويب الإعدادات =====
+  async function renderSettings(wrap) {
+    const s = await fetchSettings();
+
+    wrap.innerHTML = `
+      ${!aiEnabledCache ? `<div class="app-card"><p class="app-error-text">المساعد الذكي غير مفعّل حاليًا من طرف الإدارة (مفتاح GROQ_API_KEY غير مضبوط). الإعدادات أدناه ستُحفظ لكن لن تُفعَّل الميزات إلا بعد التفعيل.</p></div>` : ''}
+
+      <div class="app-card" style="max-width:560px">
+        <div class="app-card-head"><h3>سلوك المساعد</h3></div>
+
+        <div class="app-field">
+          <label>تفعيل المساعد الذكي</label>
+          <select id="fEnabled">
+            <option value="true" ${s.enabled ? 'selected' : ''}>مفعّل</option>
+            <option value="false" ${!s.enabled ? 'selected' : ''}>معطّل</option>
+          </select>
+        </div>
+
+        <div class="app-field">
+          <label>أسلوب الرد</label>
+          <select id="fTone">
+            <option value="friendly" ${s.tone === 'friendly' ? 'selected' : ''}>ودود</option>
+            <option value="formal" ${s.tone === 'formal' ? 'selected' : ''}>رسمي</option>
+            <option value="professional" ${s.tone === 'professional' ? 'selected' : ''}>احترافي</option>
+            <option value="concise" ${s.tone === 'concise' ? 'selected' : ''}>مختصر</option>
+          </select>
+        </div>
+
+        <div class="app-field">
+          <label>الحد الأقصى لطول الرد (عدد الأحرف تقريبًا)</label>
+          <input id="fMaxLen" type="number" min="60" max="1000" step="20" value="${s.maxReplyLength}" />
+        </div>
+
+        <div class="app-field">
+          <label>تحليل الصور المرسلة من الزبون</label>
+          <select id="fImg">
+            <option value="true" ${s.imageAnalysisEnabled ? 'selected' : ''}>مفعّل</option>
+            <option value="false" ${!s.imageAnalysisEnabled ? 'selected' : ''}>معطّل</option>
+          </select>
+        </div>
+
+        <div class="app-field">
+          <label>فهم الرسائل الصوتية من الزبون</label>
+          <select id="fVoiceUnderstand">
+            <option value="true" ${s.voiceUnderstandingEnabled ? 'selected' : ''}>مفعّل</option>
+            <option value="false" ${!s.voiceUnderstandingEnabled ? 'selected' : ''}>معطّل</option>
+          </select>
+        </div>
+
+        <div class="app-field">
+          <label>التعلّم من بيانات المتجر (المنتجات، الأسعار، المخزون)</label>
+          <select id="fLearn">
+            <option value="true" ${s.learnFromStoreData ? 'selected' : ''}>مفعّل</option>
+            <option value="false" ${!s.learnFromStoreData ? 'selected' : ''}>معطّل</option>
+          </select>
+        </div>
+
+        <div class="app-field">
+          <label>اقتراح منتجات إضافية تلقائيًا للزبون</label>
+          <select id="fAutoSuggest">
+            <option value="true" ${s.autoSuggestProducts ? 'selected' : ''}>مفعّل</option>
+            <option value="false" ${!s.autoSuggestProducts ? 'selected' : ''}>معطّل</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="app-card" style="max-width:560px">
+        <div class="app-card-head"><h3>طريقة الرد (نص أم صوت)</h3></div>
+        <p style="font-size:.82rem;color:var(--a-muted);margin-bottom:14px">
+          يحدد هذا كيف يرد البوت على الزبون: بنص أم برسالة صوتية طبيعية. الرد الصوتي متاح فقط
+          إذا كانت باقتك تدعم "الرد الصوتي".
+        </p>
+
+        <div class="app-field">
+          <label>وضع الرد</label>
+          <select id="fReplyMode">
+            <option value="smart" ${s.replyMode === 'smart' ? 'selected' : ''}>ذكي (نص للنص، صوت للصوت)</option>
+            <option value="always_text" ${s.replyMode === 'always_text' ? 'selected' : ''}>دائمًا نص</option>
+            <option value="always_voice" ${s.replyMode === 'always_voice' ? 'selected' : ''}>دائمًا صوت</option>
+            <option value="custom" ${s.replyMode === 'custom' ? 'selected' : ''}>مخصص</option>
+          </select>
+        </div>
+
+        <div id="customReplyBox" style="display:${s.replyMode === 'custom' ? 'block' : 'none'}">
+          <div class="app-field">
+            <label>إذا استلم رسالة نصية من الزبون</label>
+            <div style="display:flex;gap:14px;font-size:.82rem">
+              <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="cTextInText" ${s.customReplyMap.textIn.text ? 'checked' : ''}/> رد نصي</label>
+              <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="cTextInVoice" ${s.customReplyMap.textIn.voice ? 'checked' : ''}/> رد صوتي</label>
+            </div>
+          </div>
+          <div class="app-field">
+            <label>إذا استلم رسالة صوتية من الزبون</label>
+            <div style="display:flex;gap:14px;font-size:.82rem">
+              <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="cVoiceInText" ${s.customReplyMap.voiceIn.text ? 'checked' : ''}/> رد نصي</label>
+              <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="cVoiceInVoice" ${s.customReplyMap.voiceIn.voice ? 'checked' : ''}/> رد صوتي</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="app-field">
+          <label>صوت الرد</label>
+          <select id="fVoiceGender">
+            <option value="male" ${s.voiceGender === 'male' ? 'selected' : ''}>صوت رجل</option>
+            <option value="female" ${s.voiceGender === 'female' ? 'selected' : ''}>صوت امرأة</option>
+          </select>
+        </div>
+
+        <div class="app-field">
+          <label>سرعة الصوت</label>
+          <select id="fSpeed">
+            <option value="0.85" ${s.speed == 0.85 ? 'selected' : ''}>بطيء</option>
+            <option value="1" ${s.speed == 1 ? 'selected' : ''}>عادي</option>
+            <option value="1.2" ${s.speed == 1.2 ? 'selected' : ''}>سريع</option>
+          </select>
+        </div>
+
+        <button id="saveBtn" class="app-btn app-btn-primary">حفظ الإعدادات</button>
+      </div>
+    `;
+
+    document.getElementById('fReplyMode').addEventListener('change', (e) => {
+      document.getElementById('customReplyBox').style.display = e.target.value === 'custom' ? 'block' : 'none';
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true;
+      try {
+        const payload = {
+          enabled: document.getElementById('fEnabled').value === 'true',
+          tone: document.getElementById('fTone').value,
+          maxReplyLength: Number(document.getElementById('fMaxLen').value) || 400,
+          imageAnalysisEnabled: document.getElementById('fImg').value === 'true',
+          voiceUnderstandingEnabled: document.getElementById('fVoiceUnderstand').value === 'true',
+          learnFromStoreData: document.getElementById('fLearn').value === 'true',
+          autoSuggestProducts: document.getElementById('fAutoSuggest').value === 'true',
+          replyMode: document.getElementById('fReplyMode').value,
+          voiceGender: document.getElementById('fVoiceGender').value,
+          speed: Number(document.getElementById('fSpeed').value) || 1,
+          customReplyMap: {
+            textIn: { text: document.getElementById('cTextInText').checked, voice: document.getElementById('cTextInVoice').checked },
+            voiceIn: { text: document.getElementById('cVoiceInText').checked, voice: document.getElementById('cVoiceInVoice').checked },
+          },
+        };
+        const res = await fetch('/api/dashboard/ai-settings', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload),
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || 'تعذّر الحفظ');
+        aiSettingsCache = d.settings;
+        RB_APP.toast('تم حفظ الإعدادات', { type: 'success' });
+      } catch (err) {
+        RB_APP.toast(RB_APP.friendlyError(err), { type: 'error' });
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  // ===== تبويب اسأل المساعد =====
+  function renderAsk(wrap) {
+    wrap.innerHTML = `
+      <div class="app-card" style="max-width:640px">
+        <div class="app-card-head"><h3>اسأل المساعد عن متجرك</h3></div>
+        <p style="font-size:.82rem;color:var(--a-muted);margin-bottom:12px">
+          مثال: "ليش قلّت مبيعاتي هاذ الأسبوع؟"، "شنو أكثر منتج يتباع؟"، "اقترح لي عرض لتنشيط المبيعات".
+        </p>
+        <div class="app-field"><textarea id="askInput" rows="3" placeholder="اكتب سؤالك هنا..."></textarea></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="app-btn app-btn-primary" id="askBtn">اسأل</button>
+          <button class="app-btn app-btn-ghost" id="quickSalesDrop">لماذا انخفضت مبيعاتي؟</button>
+          <button class="app-btn app-btn-ghost" id="quickRejections">تحليل الطلبات الملغاة</button>
+        </div>
+        <div id="askAnswer" style="display:none;background:var(--a-bg);border:1px solid var(--a-border);border-radius:10px;padding:14px;font-size:.86rem;white-space:pre-wrap;line-height:1.7"></div>
+      </div>
+    `;
+
+    const answerBox = document.getElementById('askAnswer');
+    const showAnswer = (text) => { answerBox.style.display = 'block'; answerBox.textContent = text; };
+    const showLoading = () => { answerBox.style.display = 'block'; answerBox.textContent = 'جارٍ التحليل...'; };
+
+    async function ask(question) {
+      showLoading();
+      try {
+        const res = await fetch('/api/dashboard/ai/ask', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ question }),
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || 'تعذّر توليد الإجابة');
+        showAnswer(d.answer);
+      } catch (err) {
+        showAnswer(RB_APP.friendlyError(err));
+      }
+    }
+
+    document.getElementById('askBtn').addEventListener('click', () => {
+      const q = document.getElementById('askInput').value.trim();
+      if (q) ask(q);
+    });
+
+    document.getElementById('quickSalesDrop').addEventListener('click', async () => {
+      showLoading();
+      try {
+        const res = await fetch('/api/dashboard/ai/analyze/sales-drop', { credentials: 'same-origin' });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error);
+        showAnswer(d.answer);
+      } catch (err) { showAnswer(RB_APP.friendlyError(err)); }
+    });
+
+    document.getElementById('quickRejections').addEventListener('click', async () => {
+      showLoading();
+      try {
+        const res = await fetch('/api/dashboard/ai/analyze/order-rejections', { credentials: 'same-origin' });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error);
+        showAnswer(d.answer);
+      } catch (err) { showAnswer(RB_APP.friendlyError(err)); }
+    });
+  }
+
+  // ===== تبويب توليد محتوى =====
+  function renderGenerate(wrap) {
+    wrap.innerHTML = `
+      <div class="app-card" style="max-width:640px">
+        <div class="app-card-head"><h3>توليد محتوى تسويقي</h3></div>
+
+        <div class="app-field">
+          <label>نوع المحتوى</label>
+          <select id="genType">
+            <option value="product_description">وصف منتج</option>
+            <option value="ad_post">منشور إعلاني (فيسبوك/انستغرام)</option>
+            <option value="messenger_campaign">رسالة حملة Messenger</option>
+            <option value="whatsapp_campaign">رسالة حملة WhatsApp</option>
+            <option value="reply_suggestion">رد مقترح على رسالة زبون</option>
+            <option value="discount_suggestion">اقتراح خصم/عرض</option>
+          </select>
+        </div>
+
+        <div id="genParams"></div>
+
+        <button class="app-btn app-btn-primary" id="genBtn">توليد</button>
+        <div id="genResult" style="display:none;margin-top:14px;background:var(--a-bg);border:1px solid var(--a-border);border-radius:10px;padding:14px;font-size:.86rem;white-space:pre-wrap;line-height:1.7"></div>
+      </div>
+    `;
+
+    const paramsBox = document.getElementById('genParams');
+    const FIELDS = {
+      product_description: [
+        { key: 'name', label: 'اسم المنتج', type: 'text' },
+        { key: 'features', label: 'المميزات (اختياري)', type: 'text' },
+        { key: 'price', label: 'السعر (اختياري)', type: 'text' },
+      ],
+      ad_post: [
+        { key: 'name', label: 'اسم المنتج/العرض', type: 'text' },
+        { key: 'offer', label: 'تفاصيل العرض (اختياري)', type: 'text' },
+      ],
+      messenger_campaign: [
+        { key: 'goal', label: 'هدف الحملة', type: 'text' },
+        { key: 'audience', label: 'الفئة المستهدفة (اختياري)', type: 'text' },
+      ],
+      whatsapp_campaign: [
+        { key: 'goal', label: 'هدف الحملة', type: 'text' },
+        { key: 'audience', label: 'الفئة المستهدفة (اختياري)', type: 'text' },
+      ],
+      reply_suggestion: [
+        { key: 'customerMessage', label: 'رسالة الزبون', type: 'textarea' },
+      ],
+      discount_suggestion: [
+        { key: 'contextHint', label: 'أي معلومة إضافية تريد مراعاتها (اختياري)', type: 'textarea' },
+      ],
+    };
+
+    function renderParams(type) {
+      paramsBox.innerHTML = (FIELDS[type] || []).map((f) => `
+        <div class="app-field">
+          <label>${escapeHtml(f.label)}</label>
+          ${f.type === 'textarea' ? `<textarea data-p="${f.key}" rows="2"></textarea>` : `<input type="text" data-p="${f.key}" />`}
+        </div>
+      `).join('');
+    }
+    renderParams('product_description');
+    document.getElementById('genType').addEventListener('change', (e) => renderParams(e.target.value));
+
+    document.getElementById('genBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('genBtn');
+      const resultBox = document.getElementById('genResult');
+      const type = document.getElementById('genType').value;
+      const params = {};
+      paramsBox.querySelectorAll('[data-p]').forEach((el) => { if (el.value.trim()) params[el.dataset.p] = el.value.trim(); });
+
+      btn.disabled = true;
+      resultBox.style.display = 'block';
+      resultBox.textContent = 'جارٍ التوليد...';
+      try {
+        const res = await fetch('/api/dashboard/ai/generate', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ type, params }),
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || 'تعذّر توليد المحتوى');
+        resultBox.textContent = d.content;
+      } catch (err) {
+        resultBox.textContent = RB_APP.friendlyError(err);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  showTab('settings');
+})();
+</script>
+</body>
+</html>

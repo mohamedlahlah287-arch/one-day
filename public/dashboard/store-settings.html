@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إعدادات المتجر — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+(async function () {
+  const me = await RB_APP.initShell('storeSettings');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `<div class="app-skeleton">جاري التحميل...</div>`;
+
+  try {
+    const res = await fetch('/api/dashboard/store-settings', { credentials: 'same-origin' });
+    const s = await res.json();
+    if (!res.ok) throw new Error(s.error || 'تعذّر جلب الإعدادات');
+
+    content.innerHTML = `
+      <div class="app-card" style="max-width:560px">
+        <div class="app-card-head"><h3>بيانات المتجر</h3></div>
+        <div class="app-field"><label>اسم المتجر</label><input id="sName" type="text" value="${(s.storeName || '').replace(/"/g,'&quot;')}" /></div>
+        <div class="app-field"><label>رقم الهاتف / واتساب</label><input id="sPhone" type="tel" value="${(s.contactPhone || '').replace(/"/g,'&quot;')}" /></div>
+        <div class="app-field"><label>مدة التوصيل التقريبية</label><input id="sDelivery" type="text" placeholder="مثال: 2-4 أيام" value="${(s.deliveryTime || '').replace(/"/g,'&quot;')}" /></div>
+        <div class="app-field"><label>رسالة الترحيب للعميل</label><textarea id="sWelcome" rows="3">${(s.welcomeMessage || '')}</textarea></div>
+        <div class="app-field">
+          <label>قناة استلام إشعارات الطلبات</label>
+          <select id="sChannel">
+            <option value="web" ${s.notificationChannel === 'web' ? 'selected' : ''}>الموقع (هذه اللوحة)</option>
+            <option value="telegram" ${s.notificationChannel === 'telegram' ? 'selected' : ''} ${!s.telegramLinked ? 'disabled' : ''}>تيليغرام${!s.telegramLinked ? ' (غير مربوط)' : ''}</option>
+          </select>
+          <div class="app-field-hint">${s.telegramLinked ? 'حسابك مربوط ببوت تيليغرام أيضًا.' : 'لم تربط تيليغرام بعد — كل الإشعارات ستصلك هنا فقط.'}</div>
+        </div>
+        <button id="saveBtn" class="app-btn app-btn-primary">حفظ التغييرات</button>
+        <span id="saveMsg" style="margin-inline-start:10px;font-size:.82rem;display:none"></span>
+      </div>
+
+      <div class="app-card" style="max-width:560px">
+        <div class="app-card-head"><h3>القنوات المتصلة</h3></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+          <span>فيسبوك ماسنجر</span>
+          <span class="app-status-pill ${s.facebookConnected ? 'ok' : 'neutral'}">${s.facebookConnected ? 'متصل' : 'غير متصل'}</span>
+        </div>
+        <a href="/dashboard/facebook.html" class="app-btn app-btn-ghost" style="margin-top:8px">إدارة اتصال فيسبوك</a>
+      </div>
+
+      <div class="app-card" style="max-width:560px">
+        <div class="app-card-head"><h3>النسخ الاحتياطي</h3></div>
+        <p style="font-size:.82rem;color:var(--a-muted);margin-bottom:12px">
+          نسخة احتياطية تشمل الطلبات والمنتجات والعملاء والكوبونات والتقييمات.
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <a href="/api/dashboard/backup/download" class="app-btn app-btn-ghost">تنزيل نسخة الآن</a>
+          <button id="snapshotBtn" class="app-btn app-btn-primary">إنشاء نسخة محفوظة</button>
+        </div>
+        <div id="backupList" style="font-size:.82rem;color:var(--a-muted)">جاري تحميل النسخ المحفوظة...</div>
+      </div>
+    `;
+
+    async function loadBackups() {
+      const box = document.getElementById('backupList');
+      try {
+        const r = await fetch('/api/dashboard/backup/snapshots', { credentials: 'same-origin' });
+        const d = await r.json();
+        if (d.upgradeRequired) { box.textContent = d.error; return; }
+        if (!r.ok) throw new Error(d.error);
+        if (!d.snapshots.length) { box.textContent = 'لا توجد نسخ محفوظة بعد.'; return; }
+        box.innerHTML = d.snapshots.map((b) => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--a-border)">
+            <span>${b.createdAt?._seconds ? new Date(b.createdAt._seconds * 1000).toLocaleString('ar') : '—'} (${b.triggeredBy === 'auto_weekly' ? 'تلقائية' : 'يدوية'})</span>
+            <button class="app-btn app-btn-ghost restoreBtn" data-id="${b.id}" style="padding:4px 8px;font-size:.74rem">استعادة</button>
+          </div>
+        `).join('');
+        box.querySelectorAll('.restoreBtn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const sure = await RB_APP.confirmDialog({
+              title: 'استعادة نسخة احتياطية', danger: true, confirmLabel: 'استعادة',
+              body: 'سيتم استبدال بيانات متجرك الحالية (الطلبات/المنتجات/العملاء/الكوبونات/التقييمات) بمحتوى هذه النسخة. هذا الإجراء لا يمكن التراجع عنه. متأكد؟',
+            });
+            if (!sure) return;
+            try {
+              const rr = await fetch(`/api/dashboard/backup/snapshots/${btn.dataset.id}/restore`, { method: 'POST', credentials: 'same-origin' });
+              const dd = await rr.json();
+              if (!rr.ok) throw new Error(dd.error);
+              RB_APP.toast('تمت الاستعادة بنجاح', { type: 'success' });
+            } catch (err) {
+              RB_APP.toast(RB_APP.friendlyError(err), { type: 'error' });
+            }
+          });
+        });
+      } catch (err) {
+        box.textContent = RB_APP.friendlyError(err);
+      }
+    }
+
+    document.getElementById('snapshotBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('snapshotBtn');
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/dashboard/backup/snapshot', { method: 'POST', credentials: 'same-origin' });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error);
+        RB_APP.toast('تم إنشاء النسخة الاحتياطية', { type: 'success' });
+        loadBackups();
+      } catch (err) {
+        RB_APP.toast(RB_APP.friendlyError(err), { type: 'error' });
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    loadBackups();
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('saveBtn');
+      const msg = document.getElementById('saveMsg');
+      btn.disabled = true;
+      msg.style.display = 'none';
+      try {
+        const payload = {
+          storeName: document.getElementById('sName').value.trim(),
+          contactPhone: document.getElementById('sPhone').value.trim(),
+          deliveryTime: document.getElementById('sDelivery').value.trim(),
+          welcomeMessage: document.getElementById('sWelcome').value.trim(),
+          notificationChannel: document.getElementById('sChannel').value,
+        };
+        const r = await fetch('/api/dashboard/store-settings', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'تعذّر الحفظ');
+        msg.textContent = 'تم الحفظ بنجاح.'; msg.style.color = 'var(--a-success)'; msg.style.display = 'inline';
+      } catch (err) {
+        msg.textContent = RB_APP.friendlyError(err); msg.style.color = 'var(--a-danger)'; msg.style.display = 'inline';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  } catch (err) {
+    content.innerHTML = `<div class="app-error-text">${RB_APP.friendlyError(err)}</div>`;
+  }
+})();
+</script>
+</body>
+</html>

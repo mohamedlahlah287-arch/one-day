@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الطلبات — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+const RB_ORDER_STATUSES = ['جديد', 'تم التأكيد', 'تم الشحن', 'تم التسليم', 'ملغى'];
+function statusTone(s) {
+  if (s === 'تم التسليم') return 'ok';
+  if (s === 'ملغى') return 'bad';
+  if (s === 'جديد') return 'neutral';
+  return 'warn';
+}
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+(async function () {
+  const me = await RB_APP.initShell('orders');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `<div class="app-card"><div class="app-card-head"><h3>كل الطلبات</h3><button id="exportBtn" class="app-btn app-btn-ghost">تصدير Excel</button></div><div id="ordersWrap"><div class="app-skeleton">جاري التحميل...</div></div></div>`;
+
+  document.getElementById('exportBtn').addEventListener('click', openExportModal);
+
+  function openExportModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'app-modal-overlay';
+    overlay.innerHTML = `
+      <div class="app-modal" role="dialog" aria-modal="true">
+        <div class="app-modal-head">
+          <h3>تصدير الطلبات إلى Excel</h3>
+          <button class="app-modal-close" aria-label="إغلاق">${RB_APP.svg('close')}</button>
+        </div>
+        <div class="app-modal-body">
+          <div class="app-field">
+            <label>حالة الطلب</label>
+            <select id="expStatus">
+              <option value="all">كل الطلبات</option>
+              <option value="new">جديدة</option>
+              <option value="confirmed">مؤكدة</option>
+              <option value="shipped">مشحونة</option>
+              <option value="delivered">مسلمة</option>
+              <option value="cancelled">ملغاة</option>
+            </select>
+          </div>
+          <div class="app-field">
+            <label>الفترة</label>
+            <select id="expRange">
+              <option value="">كل الفترات</option>
+              <option value="today">اليوم</option>
+              <option value="yesterday">أمس</option>
+              <option value="last7">آخر 7 أيام</option>
+              <option value="last30">آخر 30 يومًا</option>
+              <option value="thisMonth">هذا الشهر</option>
+              <option value="lastMonth">الشهر الماضي</option>
+              <option value="custom">نطاق مخصص</option>
+            </select>
+          </div>
+          <div id="customRangeBox" style="display:none">
+            <div class="app-field"><label>من</label><input type="date" id="expFrom" /></div>
+            <div class="app-field"><label>إلى</label><input type="date" id="expTo" /></div>
+          </div>
+          <div class="app-field"><label>الولاية (اختياري)</label><input type="text" id="expWilaya" placeholder="مثال: الجزائر" /></div>
+          <div class="app-field"><label>المنتج (اختياري)</label><input type="text" id="expProduct" placeholder="اسم المنتج" /></div>
+        </div>
+        <div class="app-modal-actions">
+          <button class="app-btn app-btn-ghost" data-act="cancel">إلغاء</button>
+          <button class="app-btn app-btn-primary" data-act="export">تصدير</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    const close = () => { overlay.classList.remove('show'); setTimeout(() => overlay.remove(), 150); };
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.querySelector('.app-modal-close').addEventListener('click', close);
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', close);
+    overlay.querySelector('#expRange').addEventListener('change', (e) => {
+      overlay.querySelector('#customRangeBox').style.display = e.target.value === 'custom' ? 'block' : 'none';
+    });
+    overlay.querySelector('[data-act="export"]').addEventListener('click', () => {
+      const params = new URLSearchParams();
+      params.set('statusGroup', overlay.querySelector('#expStatus').value);
+      const range = overlay.querySelector('#expRange').value;
+      if (range) params.set('dateRange', range);
+      if (range === 'custom') {
+        const from = overlay.querySelector('#expFrom').value;
+        const to = overlay.querySelector('#expTo').value;
+        if (from) params.set('dateFrom', from);
+        if (to) params.set('dateTo', to);
+      }
+      const wilaya = overlay.querySelector('#expWilaya').value.trim();
+      const product = overlay.querySelector('#expProduct').value.trim();
+      if (wilaya) params.set('wilaya', wilaya);
+      if (product) params.set('product', product);
+      window.location.href = `/api/dashboard/orders/export?${params.toString()}`;
+      close();
+    });
+  }
+
+  let connectedProviders = [];
+  async function loadConnectedProviders() {
+    try {
+      const res = await fetch('/api/dashboard/delivery-providers', { credentials: 'same-origin' });
+      const d = await res.json();
+      if (res.ok) connectedProviders = (d.providers || []).filter((p) => p.enabled && p.connected);
+    } catch (e) { /* شركات التوصيل ميزة إضافية - فشلها ما يوقفش عرض الطلبات */ }
+  }
+
+  const SHIPMENT_STATUS_LABEL = {
+    created: 'تم إنشاء الشحنة', received_by_carrier: 'استلمها المندوب', in_transit: 'في الطريق',
+    out_for_delivery: 'خرج للتوزيع', delivered: 'تم التسليم', customer_refused: 'رفض الزبون',
+    returned_to_store: 'راجع للتاجر', cancelled: 'ملغاة',
+  };
+
+  function shipmentCell(o) {
+    if (o.shipmentTrackingNumber) {
+      const label = SHIPMENT_STATUS_LABEL[o.shipmentStatus] || o.shipmentStatus || '—';
+      return `
+        <div style="font-size:.78rem;line-height:1.6">
+          <div>${escapeHtml(label)}</div>
+          <div style="color:var(--a-muted)">#${escapeHtml(o.shipmentTrackingNumber)}</div>
+        </div>
+        <button class="app-btn app-btn-ghost syncShipBtn" style="margin-top:6px;padding:4px 8px;font-size:.72rem">تحديث الحالة</button>
+      `;
+    }
+    if (!connectedProviders.length) {
+      return `<a href="/dashboard/delivery-providers.html" style="font-size:.76rem">اربط شركة توصيل</a>`;
+    }
+    return `<button class="app-btn app-btn-primary createShipBtn" data-provider="${connectedProviders[0].id}" style="padding:5px 10px;font-size:.76rem">إنشاء شحنة</button>`;
+  }
+
+  async function loadOrders() {
+    const wrap = document.getElementById('ordersWrap');
+    try {
+      const res = await fetch('/api/dashboard/orders', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر جلب الطلبات');
+
+      if (!data.orders.length) {
+        wrap.innerHTML = `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد طلبات بعد</h3><p>ستظهر هنا الطلبات فور استلامها من العملاء.</p></div>`;
+        return;
+      }
+
+      wrap.innerHTML = `
+        <table class="app-table">
+          <thead><tr><th>العميل</th><th>المنتج</th><th>الإجمالي</th><th>الحالة</th><th>الشحن</th><th></th></tr></thead>
+          <tbody>
+            ${data.orders.map((o) => `
+              <tr data-id="${o.id}">
+                <td>${escapeHtml(o.name)}<br><span style="color:var(--a-muted);font-size:.78rem">${escapeHtml(o.phone)}</span></td>
+                <td>${escapeHtml(o.productName)} × ${o.quantity || 1}</td>
+                <td class="num">${o.total}</td>
+                <td><span class="app-status-pill ${statusTone(o.status)}">${o.status}</span></td>
+                <td>${shipmentCell(o)}</td>
+                <td>
+                  <select class="statusSelect" style="background:var(--a-bg);color:var(--a-text);border:1px solid var(--a-border);border-radius:6px;padding:4px 8px;font-size:.78rem">
+                    ${RB_ORDER_STATUSES.map((s) => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${s}</option>`).join('')}
+                  </select>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      wrap.querySelectorAll('.createShipBtn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const row = btn.closest('tr');
+          btn.disabled = true;
+          btn.textContent = 'جارٍ الإنشاء...';
+          try {
+            const res = await fetch(`/api/dashboard/orders/${row.dataset.id}/shipment`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+              body: JSON.stringify({ providerId: btn.dataset.provider }),
+            });
+            const d = await res.json();
+            if (!res.ok) throw new Error(d.error || 'تعذّر إنشاء الشحنة');
+            RB_APP.toast('تم إنشاء الشحنة بنجاح', { type: 'success' });
+            loadOrders();
+          } catch (err) {
+            RB_APP.toast(RB_APP.friendlyError(err), { type: 'error' });
+            btn.disabled = false;
+            btn.textContent = 'إنشاء شحنة';
+          }
+        });
+      });
+
+      wrap.querySelectorAll('.syncShipBtn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const row = btn.closest('tr');
+          btn.disabled = true;
+          try {
+            const res = await fetch(`/api/dashboard/orders/${row.dataset.id}/shipment/sync`, { method: 'POST', credentials: 'same-origin' });
+            const d = await res.json();
+            if (!res.ok) throw new Error(d.error || 'تعذّر المزامنة');
+            RB_APP.toast(d.changed ? 'تم تحديث حالة الشحنة' : 'لا يوجد تغيير جديد', { type: 'success' });
+            loadOrders();
+          } catch (err) {
+            RB_APP.toast(RB_APP.friendlyError(err), { type: 'error' });
+            btn.disabled = false;
+          }
+        });
+      });
+
+      wrap.querySelectorAll('.statusSelect').forEach((sel) => {
+        sel.addEventListener('change', async () => {
+          const row = sel.closest('tr');
+          sel.disabled = true;
+          try {
+            const res = await fetch(`/api/dashboard/orders/${row.dataset.id}/status`, {
+              method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+              body: JSON.stringify({ status: sel.value }),
+            });
+            const d = await res.json();
+            if (!res.ok) throw new Error(d.error);
+            loadOrders();
+          } catch (err) {
+            alert(RB_APP.friendlyError(err, 'تعذّر تحديث الحالة'));
+            sel.disabled = false;
+          }
+        });
+      });
+    } catch (err) {
+      wrap.innerHTML = `<div class="app-error-text">${RB_APP.friendlyError(err)}</div>`;
+    }
+  }
+
+  await loadConnectedProviders();
+  loadOrders();
+})();
+</script>
+</body>
+</html>

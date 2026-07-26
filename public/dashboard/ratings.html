@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>التقييمات — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+function stars(n) {
+  const full = Math.round(n || 0);
+  return Array.from({ length: 5 }, (_, i) => i < full ? '★' : '☆').join('');
+}
+function timeAgo(ts) {
+  if (!ts) return '';
+  const d = ts._seconds ? new Date(ts._seconds * 1000) : new Date(ts);
+  return d.toLocaleDateString('ar');
+}
+
+(async function () {
+  const me = await RB_APP.initShell('ratings');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `<div class="app-skeleton">جاري التحميل...</div>`;
+
+  try {
+    const res = await fetch('/api/dashboard/ratings', { credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'تعذّر جلب التقييمات');
+
+    const avg = data.average || { average: null, count: 0 };
+
+    content.innerHTML = `
+      <div class="app-kpi-grid" style="max-width:420px">
+        <div class="app-kpi">
+          <div class="app-kpi-label">متوسط التقييم</div>
+          <div class="app-kpi-value">${avg.average ?? '—'} <span style="color:var(--a-warning);font-size:1.1rem">${avg.average ? stars(avg.average) : ''}</span></div>
+          <div class="app-kpi-sub">من ${avg.count} تقييم</div>
+        </div>
+      </div>
+      <div class="app-card">
+        <div class="app-card-head"><h3>آخر التقييمات</h3></div>
+        <div id="ratingsWrap"></div>
+      </div>
+    `;
+
+    const wrap = document.getElementById('ratingsWrap');
+    if (!data.ratings.length) {
+      wrap.innerHTML = `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد تقييمات بعد</h3><p>ستظهر هنا تقييمات العملاء بعد كل طلب مكتمل.</p></div>`;
+      return;
+    }
+
+    wrap.innerHTML = `
+      <table class="app-table">
+        <thead><tr><th>التقييم</th><th>رقم الطلب</th><th>التاريخ</th></tr></thead>
+        <tbody>
+          ${data.ratings.slice().reverse().map((r) => `
+            <tr>
+              <td style="color:var(--a-warning)">${stars(r.stars)}</td>
+              <td style="color:var(--a-muted);font-size:.8rem">${r.orderId || '—'}</td>
+              <td style="color:var(--a-muted);font-size:.8rem">${timeAgo(r.createdAt)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    content.innerHTML = `<div class="app-error-text">${RB_APP.friendlyError(err)}</div>`;
+  }
+})();
+</script>
+</body>
+</html>

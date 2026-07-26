@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الاشتراك والفوترة — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+const PLAN_ICON = { starter: 'bolt', growth: 'spark', pro: 'building', business: 'crown' };
+const PLAN_FEATURES = {
+  starter: ['حتى 50 منتج', 'حتى 1,000 رسالة شهريًا', 'الرد النصي', 'الذكاء الاصطناعي الأساسي', 'ربط Facebook', 'تقارير أساسية'],
+  growth: ['حتى 500 منتج', 'حتى 10,000 رسالة شهريًا', 'الردود الصوتية', 'تحليل الصور', 'سلات متروكة', 'كوبونات', 'تحليلات متقدمة', 'ذكاء اصطناعي كامل'],
+  pro: ['منتجات غير محدودة', 'رسائل غير محدودة', 'موظفون متعددون', 'جميع ميزات الذكاء الاصطناعي', 'جميع الرسائل الصوتية', 'جميع التحليلات', 'جميع التقارير', 'دعم أولوية'],
+  business: ['كل شيء غير محدود', 'دعم خاص', 'ميزات مستقبلية تلقائيًا', 'API', 'صلاحيات متقدمة'],
+};
+
+function fmtDate(v) {
+  if (!v) return '—';
+  try {
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('ar', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch (e) { return '—'; }
+}
+function statusTone(s) {
+  if (s === 'active') return 'ok';
+  if (s === 'expired' || s === 'cancelled') return 'bad';
+  return 'warn';
+}
+function statusLabel(s) {
+  return { active: 'نشط', expired: 'منتهي', cancelled: 'ملغى', trial: 'تجريبي' }[s] || (s || 'بلا اشتراك');
+}
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+(async function () {
+  const me = await RB_APP.initShell('billing');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `<div class="app-skeleton">جاري التحميل...</div>`;
+
+  try {
+    const res = await fetch('/api/dashboard/billing', { credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'تعذّر جلب بيانات الاشتراك');
+
+    const store = data.store;
+    const plans = data.plans || [];
+
+    content.innerHTML = `
+      <div class="app-card" style="max-width:560px">
+        <div class="app-card-head"><h3>باقتك الحالية</h3></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:1.1rem;font-weight:650">${escapeHtml(store.planName || 'المجانية')}</div>
+          ${store.subscriptionStatus ? `<span class="app-status-pill ${statusTone(store.subscriptionStatus)}">${statusLabel(store.subscriptionStatus)}</span>` : ''}
+        </div>
+        <div style="color:var(--a-muted);font-size:.85rem;display:flex;flex-direction:column;gap:4px">
+          <div>الرسائل المستهلكة: <b class="num" style="color:var(--a-text)">${store.messageCount ?? 0} / ${store.messageLimit ?? '∞'}</b></div>
+          ${store.subscriptionExpiresAt ? `<div>تاريخ انتهاء الاشتراك: <b style="color:var(--a-text)">${fmtDate(store.subscriptionExpiresAt)}</b></div>` : ''}
+        </div>
+      </div>
+
+      <div class="app-card-head" style="margin-top:26px"><h3>اختر باقتك</h3></div>
+      <div class="app-plans-grid" id="plansGrid"></div>
+      ${!data.paymentsEnabled ? `<p style="color:var(--a-muted);font-size:.8rem;margin-top:14px">الدفع الإلكتروني غير مفعّل حاليًا من طرف الإدارة.</p>` : ''}
+    `;
+
+    const grid = document.getElementById('plansGrid');
+    grid.innerHTML = plans.map((p) => {
+      const isCurrent = p.id === store.planId;
+      const discount = (!store.hasEverPaid && data.firstPurchaseDiscountPercent > 0) ? data.firstPurchaseDiscountPercent : 0;
+      const finalPrice = discount ? Math.round(p.price * (1 - discount / 100)) : p.price;
+      return `
+        <div class="app-plan-card ${p.recommended ? 'recommended' : ''} ${isCurrent ? 'current' : ''}">
+          ${isCurrent ? '<span class="app-plan-badge current">باقتك الحالية</span>' : (p.recommended ? '<span class="app-plan-badge">الأكثر ملاءمة</span>' : '')}
+          <div class="app-plan-icon">${RB_APP.svg(PLAN_ICON[p.id] || 'billing')}</div>
+          <div class="app-plan-name">${escapeHtml(p.name)}</div>
+          <div class="app-plan-tagline">${escapeHtml(p.tagline || '')}</div>
+          <div class="app-plan-price">
+            <span class="amount num">${finalPrice.toLocaleString('ar')}</span>
+            <span class="period">دج / شهريًا${discount ? ` <span style="color:var(--a-success)">(خصم ${discount}٪ لأول اشتراك)</span>` : ''}</span>
+          </div>
+          <ul class="app-plan-features">
+            ${(PLAN_FEATURES[p.id] || []).map((f) => `<li>${RB_APP.svg('check')}<span>${f}</span></li>`).join('')}
+          </ul>
+          <button class="app-btn ${isCurrent ? 'app-btn-ghost' : 'app-btn-primary'} app-plan-cta" data-plan="${p.id}" ${isCurrent || !data.paymentsEnabled ? 'disabled' : ''}>
+            ${isCurrent ? 'باقتك الحالية' : 'اختيار هذه الباقة'}
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.app-plan-cta').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const planId = btn.getAttribute('data-plan');
+        btn.disabled = true;
+        const originalLabel = btn.textContent;
+        btn.textContent = 'جاري التحويل...';
+        try {
+          const r = await fetch('/api/dashboard/billing/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ planId }),
+          });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error || 'تعذّر إنشاء عملية الدفع');
+          RB_APP.toast('جاري تحويلك لصفحة الدفع...', { type: 'success' });
+          window.location.href = d.checkoutUrl;
+        } catch (err) {
+          RB_APP.toast(RB_APP.friendlyError(err, 'تعذّر إنشاء عملية الدفع، حاول مرة أخرى.'), { type: 'error' });
+          btn.disabled = false;
+          btn.textContent = originalLabel;
+        }
+      });
+    });
+  } catch (err) {
+    content.innerHTML = `<div class="app-error-text">${RB_APP.friendlyError(err, 'تعذّر جلب بيانات الاشتراك، حاول مرة أخرى.')}</div>`;
+  }
+})();
+</script>
+</body>
+</html>

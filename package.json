@@ -1,0 +1,36 @@
+{
+  "name": "redonbot",
+  "version": "1.0.0",
+  "description": "نظام بوت بائع ذكي متعدد المتاجر (Multi-tenant SaaS) - عمارة طبقات كاملة",
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "main": "src/bots/superAdminBot.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/allInOne.js",
+    "start:all": "node src/allInOne.js",
+    "dev:all": "nodemon src/allInOne.js",
+    "start:merchant": "node src/bots/adminBot.js",
+    "start:customer": "node src/bots/customerBot.js",
+    "start:superadmin": "node src/bots/superAdminBot.js",
+    "dev:merchant": "nodemon src/bots/adminBot.js",
+    "dev:customer": "nodemon src/bots/customerBot.js",
+    "dev:superadmin": "nodemon src/bots/superAdminBot.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "migrate:voice-conditions": "node scripts/migrateVoiceNoteConditions.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.16.3",
+    "firebase-admin": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3",
+    "express": "^4.19.2",
+    "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0",
+    "jest": "^29.7.0"
+  }
+}

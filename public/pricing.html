@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RedonBot — Pricing</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=Cairo:wght@500;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-top">
+    <a href="/" class="brand">
+      <img src="/assets/img/logo.svg" class="brand-mark" alt="RedonBot" />
+      <span class="brand-name" data-i18n="brandName">RedonBot</span>
+    </a>
+    <button class="sidebar-close" id="sidebarClose" aria-label="إغلاق">✕</button>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/" data-i18n="navHome">الرئيسية</a>
+    <a href="/#why" data-i18n="navAbout">عن المنصة</a>
+    <a href="/#features" data-i18n="navFeatures">المميزات</a>
+    <a href="/pricing.html" data-i18n="navPricing">الأسعار</a>
+    <a href="/login.html" id="authNavLink" data-i18n="navLogin">تسجيل الدخول</a>
+  </nav>
+  <div class="sidebar-section">
+    <span class="sidebar-label" data-i18n="followUs">تابعنا</span>
+    <div class="social-links" id="socialLinks"></div>
+  </div>
+  <div class="sidebar-section sidebar-controls">
+    <button id="themeToggle" class="pill-btn">
+      <span id="themeIcon">🌙</span>
+      <span id="themeLabel" data-i18n="darkMode">الوضع الليلي</span>
+    </button>
+    <div class="lang-switch" id="langSwitch"></div>
+  </div>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="main">
+  <header class="topbar">
+    <button class="burger" id="burgerBtn" aria-label="القائمة">☰</button>
+    <a href="/signup.html" class="cta-small" data-i18n="ctaSubscribe">اشترك الآن</a>
+  </header>
+
+  <section class="pricing" id="pricing" style="padding-top:48px">
+    <h2 data-i18n="pricingTitle">الخطط والأسعار</h2>
+    <p class="pricing-sub" data-i18n="pricingSub">اختر الباقة المناسبة لحجم متجرك — يمكنك التغيير في أي وقت.</p>
+    <div class="discount-banner" id="discountBanner"></div>
+    <div class="plans-grid" id="plansGrid"></div>
+  </section>
+
+  <section class="billing" id="billing">
+    <h2 data-i18n="billingTitle">الدفع وتفعيل الاشتراك</h2>
+    <p data-i18n="billingSub">أنشئ حسابك المجاني، واختر باقتك وادفع مباشرة من لوحة التحكم — بلا تيليغرام ولا أي خطوة إضافية.</p>
+    <div class="billing-box" style="text-align:center">
+      <a href="/signup.html" class="btn btn-primary" style="width:100%;box-sizing:border-box" data-i18n="billingCta">أنشئ حسابك مجانًا</a>
+      <p style="margin:14px 0 0;font-size:.85rem;color:var(--muted)" data-i18n="billingLoginNote">عندك حساب بالفعل؟ سجّل الدخول واختر باقتك من لوحة التحكم.</p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>© <span id="year"></span> RedonBot — <span data-i18n="footerTag">منصة ذكاء اصطناعي للتجارة عبر المحادثات</span></p>
+  </footer>
+</div>
+
+<script>
+window.RB_EXTRA_I18N = {
+  ar: {
+    pricingTitle: 'الخطط والأسعار', pricingSub: 'اختر الباقة المناسبة لحجم متجرك، مع عرض كامل لكل ميزة في كل باقة — يمكنك التغيير في أي وقت.',
+    billingTitle: 'الدفع وتفعيل الاشتراك',
+    billingSub: 'أنشئ حسابك المجاني، واختر باقتك وادفع مباشرة من لوحة التحكم — بلا تيليغرام ولا أي خطوة إضافية.',
+    billingCta: 'أنشئ حسابك مجانًا', billingLoginNote: 'عندك حساب بالفعل؟ سجّل الدخول واختر باقتك من لوحة التحكم.',
+    storeIdLabel: 'معرف المتجر (Store ID)', lookupBtn: 'تحقق من متجري',
+    free: 'مجانًا', perMonth: '/ شهر', mostPopular: 'الأكثر طلبًا', choose: 'اختر هذه الباقة',
+    msgLimit: 'رسالة شهريًا', unlimited: 'غير محدود', productLimit: 'منتج',
+    discountText: 'خصم %PCT%٪ على أول اشتراك مدفوع لكل متجر جديد',
+    storeNotFound: 'لم يتم العثور على متجر بهذا المعرف. تأكد من الرقم أو تواصل معنا.',
+    storeFound: 'متجر:', currentPlan: 'الباقة الحالية:', pickPlanPrompt: 'اختر الباقة التي تريد الدفع من أجلها:',
+    payNow: 'ادفع الآن', paymentsOff: 'الدفع الإلكتروني غير مفعّل حاليًا من طرف المنصة، تواصل مع الدعم.',
+    redirecting: 'جاري تحويلك لصفحة الدفع...',
+    textReply: 'رد تلقائي نصي', imgAnalysis: 'تحليل الصور', voiceReply: 'الرد الصوتي',
+    cartRecovery: 'استرجاع السلات المتروكة', fullAnalytics: 'تحليلات كاملة',
+    staffAccounts: 'حسابات فريق العمل', merchantVoiceNotes: 'رسائل صوتية مسجّلة من التاجر',
+  },
+  en: {
+    pricingTitle: 'Plans & pricing', pricingSub: "Pick the plan that fits your store's size — every feature is shown for every plan, and you can change anytime.",
+    billingTitle: 'Payment & subscription activation',
+    billingSub: 'Create your free account, then pick your plan and pay directly from your dashboard — no Telegram, no extra steps.',
+    billingCta: 'Create your free account', billingLoginNote: 'Already have an account? Log in and pick your plan from your dashboard.',
+    storeIdLabel: 'Store ID', lookupBtn: 'Check my store',
+    free: 'Free', perMonth: '/ month', mostPopular: 'Most popular', choose: 'Choose this plan',
+    msgLimit: 'messages / month', unlimited: 'unlimited', productLimit: 'products',
+    discountText: '%PCT%% off your first paid subscription',
+    storeNotFound: 'No store found with this ID. Double-check the number or contact us.',
+    storeFound: 'Store:', currentPlan: 'Current plan:', pickPlanPrompt: 'Choose the plan you want to pay for:',
+    payNow: 'Pay now', paymentsOff: 'Online payment is not currently enabled. Please contact support.',
+    redirecting: 'Redirecting you to the payment page...',
+    textReply: 'Text auto-reply', imgAnalysis: 'Image recognition', voiceReply: 'Voice reply',
+    cartRecovery: 'Abandoned cart recovery', fullAnalytics: 'Full analytics',
+    staffAccounts: 'Team accounts', merchantVoiceNotes: 'Merchant-recorded voice notes',
+  },
+  fr: {
+    pricingTitle: 'Formules et tarifs', pricingSub: 'Choisissez la formule adaptée à la taille de votre boutique — chaque fonctionnalité est indiquée pour chaque formule.',
+    billingTitle: "Paiement et activation de l'abonnement",
+    billingSub: 'Créez votre compte gratuit, puis choisissez votre formule et payez directement depuis votre tableau de bord — sans Telegram, sans étape supplémentaire.',
+    billingCta: 'Créer mon compte gratuit', billingLoginNote: 'Vous avez déjà un compte ? Connectez-vous et choisissez votre formule depuis votre tableau de bord.',
+    storeIdLabel: 'Identifiant boutique (Store ID)', lookupBtn: 'Vérifier ma boutique',
+    free: 'Gratuit', perMonth: '/ mois', mostPopular: 'Le plus choisi', choose: 'Choisir cette formule',
+    msgLimit: 'messages / mois', unlimited: 'illimité', productLimit: 'produits',
+    discountText: '%PCT%% de réduction sur votre premier abonnement payant',
+    storeNotFound: "Aucune boutique trouvée avec cet identifiant.",
+    storeFound: 'Boutique :', currentPlan: 'Formule actuelle :', pickPlanPrompt: 'Choisissez la formule à payer :',
+    payNow: 'Payer maintenant', paymentsOff: "Le paiement en ligne n'est pas encore activé.",
+    redirecting: 'Redirection vers la page de paiement...',
+    textReply: 'Réponse automatique texte', imgAnalysis: 'Analyse image', voiceReply: 'Réponse vocale',
+    cartRecovery: 'Paniers abandonnés', fullAnalytics: 'Statistiques complètes',
+    staffAccounts: "Comptes d'équipe", merchantVoiceNotes: 'Notes vocales enregistrées par le commerçant',
+  },
+  es: {
+    pricingTitle: 'Planes y precios', pricingSub: 'Elige el plan según el tamaño de tu tienda — cada función se muestra en todos los planes.',
+    billingTitle: 'Pago y activación de la suscripción',
+    billingSub: 'Crea tu cuenta gratuita, elige tu plan y paga directamente desde tu panel — sin Telegram ni pasos adicionales.',
+    billingCta: 'Crear mi cuenta gratis', billingLoginNote: '¿Ya tienes cuenta? Inicia sesión y elige tu plan desde tu panel.',
+    storeIdLabel: 'ID de tienda (Store ID)', lookupBtn: 'Verificar mi tienda',
+    free: 'Gratis', perMonth: '/ mes', mostPopular: 'Más elegido', choose: 'Elegir este plan',
+    msgLimit: 'mensajes / mes', unlimited: 'ilimitado', productLimit: 'productos',
+    discountText: '%PCT%% de descuento en tu primera suscripción de pago',
+    storeNotFound: 'No se encontró ninguna tienda con este ID. Verifica el número o contáctanos.',
+    storeFound: 'Tienda:', currentPlan: 'Plan actual:', pickPlanPrompt: 'Elige el plan que quieres pagar:',
+    payNow: 'Pagar ahora', paymentsOff: 'El pago en línea no está habilitado actualmente. Contacta con soporte.',
+    redirecting: 'Redirigiendo a la página de pago...',
+    textReply: 'Respuesta automática de texto', imgAnalysis: 'Análisis de imágenes', voiceReply: 'Respuesta por voz',
+    cartRecovery: 'Recuperación de carritos abandonados', fullAnalytics: 'Estadísticas completas',
+    staffAccounts: 'Cuentas de equipo', merchantVoiceNotes: 'Notas de voz grabadas por el comerciante',
+  },
+  de: {
+    pricingTitle: 'Pläne & Preise', pricingSub: 'Wählen Sie den passenden Plan — jede Funktion wird für jeden Plan angezeigt.',
+    billingTitle: 'Zahlung und Abo-Aktivierung',
+    billingSub: 'Erstellen Sie Ihr kostenloses Konto, wählen Sie dann Ihren Plan und bezahlen Sie direkt über Ihr Dashboard — ohne Telegram, ohne zusätzliche Schritte.',
+    billingCta: 'Kostenloses Konto erstellen', billingLoginNote: 'Haben Sie bereits ein Konto? Melden Sie sich an und wählen Sie Ihren Plan im Dashboard.',
+    storeIdLabel: 'Store-ID', lookupBtn: 'Shop prüfen',
+    free: 'Kostenlos', perMonth: '/ Monat', mostPopular: 'Am beliebtesten', choose: 'Diesen Plan wählen',
+    msgLimit: 'Nachrichten / Monat', unlimited: 'unbegrenzt', productLimit: 'Produkte',
+    discountText: '%PCT%% Rabatt auf Ihr erstes bezahltes Abo',
+    storeNotFound: 'Kein Shop mit dieser ID gefunden. Prüfen Sie die Nummer oder kontaktieren Sie uns.',
+    storeFound: 'Shop:', currentPlan: 'Aktueller Plan:', pickPlanPrompt: 'Wählen Sie den Plan, den Sie bezahlen möchten:',
+    payNow: 'Jetzt bezahlen', paymentsOff: 'Online-Zahlung ist derzeit nicht aktiviert. Bitte kontaktieren Sie den Support.',
+    redirecting: 'Sie werden zur Zahlungsseite weitergeleitet...',
+    textReply: 'Automatische Textantwort', imgAnalysis: 'Bilderkennung', voiceReply: 'Sprachantwort',
+    cartRecovery: 'Rückgewinnung abgebrochener Warenkörbe', fullAnalytics: 'Vollständige Analysen',
+    staffAccounts: 'Team-Konten', merchantVoiceNotes: 'Vom Händler aufgenommene Sprachnotizen',
+  },
+  it: {
+    pricingTitle: 'Piani e prezzi', pricingSub: 'Scegli il piano adatto alla tua attività — ogni funzione è mostrata per ogni piano.',
+    billingTitle: "Pagamento e attivazione dell'abbonamento",
+    billingSub: 'Crea il tuo account gratuito, scegli il tuo piano e paga direttamente dalla dashboard — senza Telegram, senza passaggi extra.',
+    billingCta: 'Crea il mio account gratuito', billingLoginNote: 'Hai già un account? Accedi e scegli il tuo piano dalla dashboard.',
+    storeIdLabel: 'Store ID', lookupBtn: 'Verifica il mio negozio',
+    free: 'Gratis', perMonth: '/ mese', mostPopular: 'Più scelto', choose: 'Scegli questo piano',
+    msgLimit: 'messaggi / mese', unlimited: 'illimitato', productLimit: 'prodotti',
+    discountText: '%PCT%% di sconto sul primo abbonamento a pagamento',
+    storeNotFound: 'Nessun negozio trovato con questo ID. Verifica il numero o contattaci.',
+    storeFound: 'Negozio:', currentPlan: 'Piano attuale:', pickPlanPrompt: 'Scegli il piano da pagare:',
+    payNow: 'Paga ora', paymentsOff: 'Il pagamento online non è attualmente attivo. Contatta il supporto.',
+    redirecting: 'Reindirizzamento alla pagina di pagamento...',
+    textReply: 'Risposta automatica testuale', imgAnalysis: 'Analisi immagini', voiceReply: 'Risposta vocale',
+    cartRecovery: 'Recupero carrelli abbandonati', fullAnalytics: 'Statistiche complete',
+    staffAccounts: 'Account del team', merchantVoiceNotes: 'Note vocali registrate dal commerciante',
+  },
+  pt: {
+    pricingTitle: 'Planos e preços', pricingSub: 'Escolha o plano ideal para o tamanho da sua loja — todos os recursos são exibidos em cada plano.',
+    billingTitle: 'Pagamento e ativação da assinatura',
+    billingSub: 'Crie sua conta gratuita, escolha seu plano e pague diretamente pelo painel — sem Telegram, sem etapas extras.',
+    billingCta: 'Criar minha conta grátis', billingLoginNote: 'Já tem uma conta? Faça login e escolha seu plano no painel.',
+    storeIdLabel: 'ID da loja (Store ID)', lookupBtn: 'Verificar minha loja',
+    free: 'Grátis', perMonth: '/ mês', mostPopular: 'Mais escolhido', choose: 'Escolher este plano',
+    msgLimit: 'mensagens / mês', unlimited: 'ilimitado', productLimit: 'produtos',
+    discountText: '%PCT%% de desconto na sua primeira assinatura paga',
+    storeNotFound: 'Nenhuma loja encontrada com este ID. Confira o número ou fale conosco.',
+    storeFound: 'Loja:', currentPlan: 'Plano atual:', pickPlanPrompt: 'Escolha o plano que deseja pagar:',
+    payNow: 'Pagar agora', paymentsOff: 'O pagamento online não está ativado no momento. Fale com o suporte.',
+    redirecting: 'Redirecionando para a página de pagamento...',
+    textReply: 'Resposta automática por texto', imgAnalysis: 'Reconhecimento de imagem', voiceReply: 'Resposta por voz',
+    cartRecovery: 'Recuperação de carrinho abandonado', fullAnalytics: 'Análises completas',
+    staffAccounts: 'Contas de equipe', merchantVoiceNotes: 'Notas de voz gravadas pelo lojista',
+  },
+  tr: {
+    pricingTitle: 'Planlar ve fiyatlandırma', pricingSub: 'Mağazanızın büyüklüğüne uygun planı seçin — her özellik tüm planlarda gösterilir.',
+    billingTitle: 'Ödeme ve abonelik etkinleştirme',
+    billingSub: 'Ücretsiz hesabınızı oluşturun, planınızı seçin ve doğrudan panelinizden ödeyin — Telegram yok, ekstra adım yok.',
+    billingCta: 'Ücretsiz hesap oluştur', billingLoginNote: 'Zaten hesabınız var mı? Giriş yapın ve planınızı panelden seçin.',
+    storeIdLabel: 'Mağaza kimliği (Store ID)', lookupBtn: 'Mağazamı kontrol et',
+    free: 'Ücretsiz', perMonth: '/ ay', mostPopular: 'En popüler', choose: 'Bu planı seç',
+    msgLimit: 'mesaj / ay', unlimited: 'sınırsız', productLimit: 'ürün',
+    discountText: 'İlk ücretli aboneliğinizde %PCT% indirim',
+    storeNotFound: 'Bu kimlikle bir mağaza bulunamadı. Numarayı kontrol edin veya bizimle iletişime geçin.',
+    storeFound: 'Mağaza:', currentPlan: 'Mevcut plan:', pickPlanPrompt: 'Ödeme yapmak istediğiniz planı seçin:',
+    payNow: 'Şimdi öde', paymentsOff: 'Çevrimiçi ödeme şu anda etkin değil. Lütfen destek ile iletişime geçin.',
+    redirecting: 'Ödeme sayfasına yönlendiriliyorsunuz...',
+    textReply: 'Otomatik metin yanıtı', imgAnalysis: 'Görsel analizi', voiceReply: 'Sesli yanıt',
+    cartRecovery: 'Terk edilmiş sepet kurtarma', fullAnalytics: 'Tam analitik',
+    staffAccounts: 'Ekip hesapları', merchantVoiceNotes: 'Satıcı tarafından kaydedilen sesli notlar',
+  },
+  ru: {
+    pricingTitle: 'Тарифы и цены', pricingSub: 'Выберите тариф под размер вашего магазина — все функции показаны для каждого тарифа.',
+    billingTitle: 'Оплата и активация подписки',
+    billingSub: 'Создайте бесплатный аккаунт, выберите тариф и оплатите прямо из панели управления — без Telegram и лишних шагов.',
+    billingCta: 'Создать бесплатный аккаунт', billingLoginNote: 'Уже есть аккаунт? Войдите и выберите тариф в панели управления.',
+    storeIdLabel: 'ID магазина (Store ID)', lookupBtn: 'Проверить мой магазин',
+    free: 'Бесплатно', perMonth: '/ мес.', mostPopular: 'Самый популярный', choose: 'Выбрать тариф',
+    msgLimit: 'сообщений / мес.', unlimited: 'без ограничений', productLimit: 'товаров',
+    discountText: 'Скидка %PCT%% на первую платную подписку',
+    storeNotFound: 'Магазин с таким ID не найден. Проверьте номер или свяжитесь с нами.',
+    storeFound: 'Магазин:', currentPlan: 'Текущий тариф:', pickPlanPrompt: 'Выберите тариф для оплаты:',
+    payNow: 'Оплатить сейчас', paymentsOff: 'Онлайн-оплата сейчас недоступна. Свяжитесь со службой поддержки.',
+    redirecting: 'Перенаправляем вас на страницу оплаты...',
+    textReply: 'Автоответ текстом', imgAnalysis: 'Распознавание изображений', voiceReply: 'Голосовой ответ',
+    cartRecovery: 'Возврат брошенных корзин', fullAnalytics: 'Полная аналитика',
+    staffAccounts: 'Командные аккаунты', merchantVoiceNotes: 'Голосовые заметки, записанные продавцом',
+  },
+  zh: {
+    pricingTitle: '套餐与价格', pricingSub: '选择适合您店铺规模的套餐——每个套餐的所有功能都会完整显示。',
+    billingTitle: '付款与订阅激活',
+    billingSub: '创建您的免费账户,选择套餐并直接在控制台完成付款——无需 Telegram,无需额外步骤。',
+    billingCta: '免费创建账户', billingLoginNote: '已有账户?登录后在控制台选择您的套餐。',
+    storeIdLabel: '店铺 ID', lookupBtn: '查询我的店铺',
+    free: '免费', perMonth: '/ 月', mostPopular: '最受欢迎', choose: '选择此套餐',
+    msgLimit: '条消息 / 月', unlimited: '不限', productLimit: '件商品',
+    discountText: '首次付费订阅享 %PCT%% 折扣',
+    storeNotFound: '未找到该 ID 对应的店铺,请核对编号或联系我们。',
+    storeFound: '店铺:', currentPlan: '当前套餐:', pickPlanPrompt: '选择您要付款的套餐:',
+    payNow: '立即付款', paymentsOff: '在线支付目前尚未开启,请联系客服。',
+    redirecting: '正在跳转至支付页面...',
+    textReply: '文字自动回复', imgAnalysis: '图像识别', voiceReply: '语音回复',
+    cartRecovery: '废弃购物车挽回', fullAnalytics: '完整数据分析',
+    staffAccounts: '团队账户', merchantVoiceNotes: '商家录制语音备注',
+  },
+};
+</script>
+<script src="/assets/site-common.js"></script>
+<script src="/assets/pricing.js"></script>
+</body>
+</html>

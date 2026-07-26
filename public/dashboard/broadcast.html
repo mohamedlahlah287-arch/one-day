@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>البث الجماعي — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+(async function () {
+  const me = await RB_APP.initShell('broadcast');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `
+    <div class="app-card" style="max-width:600px">
+      <div class="app-card-head"><h3>إرسال رسالة جماعية</h3></div>
+      <p style="font-size:.82rem;color:var(--a-muted);margin-bottom:14px">
+        اختر جمهورك، اكتب رسالتك، وأرسلها لكل من يطابق الشرط عبر Messenger.
+        ⚠️ رسائل خارج نافذة الـ24 ساعة من آخر تفاعل قد لا تصل لكل العملاء حسب سياسات Meta الحالية.
+      </p>
+
+      <div class="app-field">
+        <label>الجمهور المستهدف</label>
+        <select id="bSegment">
+          <option value="all">كل العملاء</option>
+          <option value="previous_buyers">العملاء الذين اشتروا سابقًا</option>
+          <option value="inactive">العملاء غير النشطين</option>
+          <option value="by_wilaya">حسب الولاية</option>
+          <option value="by_product">حسب المنتج</option>
+        </select>
+      </div>
+
+      <div class="app-field" id="wilayaBox" style="display:none">
+        <label>الولاية</label>
+        <input type="text" id="bWilaya" placeholder="مثال: الجزائر" />
+      </div>
+      <div class="app-field" id="productBox" style="display:none">
+        <label>اسم المنتج</label>
+        <input type="text" id="bProduct" placeholder="اسم المنتج كما هو مسجّل" />
+      </div>
+      <div class="app-field" id="inactiveBox" style="display:none">
+        <label>عدد أيام عدم النشاط</label>
+        <input type="number" id="bInactiveDays" value="30" min="1" />
+      </div>
+
+      <div class="app-field"><label>نص الرسالة</label><textarea id="bText" rows="4" placeholder="اكتب رسالتك هنا..."></textarea></div>
+      <div class="app-field"><label>رابط صورة (اختياري)</label><input type="text" id="bImage" placeholder="https://..." /></div>
+      <div class="app-field"><label>كود كوبون (اختياري)</label><input type="text" id="bCoupon" placeholder="مثال: SALE20" /></div>
+
+      <button id="sendBtn" class="app-btn app-btn-primary">إرسال الحملة</button>
+      <div id="sendResult" style="display:none;margin-top:12px;font-size:.85rem"></div>
+    </div>
+  `;
+
+  const wrap = content;
+  wrap.querySelector('#bSegment').addEventListener('change', (e) => {
+    wrap.querySelector('#wilayaBox').style.display = e.target.value === 'by_wilaya' ? 'block' : 'none';
+    wrap.querySelector('#productBox').style.display = e.target.value === 'by_product' ? 'block' : 'none';
+    wrap.querySelector('#inactiveBox').style.display = e.target.value === 'inactive' ? 'block' : 'none';
+  });
+
+  document.getElementById('sendBtn').addEventListener('click', async () => {
+    const segment = document.getElementById('bSegment').value;
+    const text = document.getElementById('bText').value.trim();
+    if (!text) { RB_APP.toast('اكتب نص الرسالة أولًا', { type: 'error' }); return; }
+
+    const filters = {};
+    if (segment === 'by_wilaya') filters.wilaya = document.getElementById('bWilaya').value.trim();
+    if (segment === 'by_product') filters.productName = document.getElementById('bProduct').value.trim();
+    if (segment === 'inactive') filters.inactiveDays = Number(document.getElementById('bInactiveDays').value) || 30;
+
+    const sure = await RB_APP.confirmDialog({
+      title: 'تأكيد إرسال الحملة',
+      body: 'سيتم إرسال هذه الرسالة لكل من يطابق الشرط المحدد. هل تريد المتابعة؟',
+      confirmLabel: 'إرسال', danger: false,
+    });
+    if (!sure) return;
+
+    const btn = document.getElementById('sendBtn');
+    const resultBox = document.getElementById('sendResult');
+    btn.disabled = true;
+    resultBox.style.display = 'block';
+    resultBox.style.color = 'var(--a-muted)';
+    resultBox.textContent = 'جارٍ الإرسال...';
+
+    try {
+      const res = await fetch('/api/dashboard/broadcast/send', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({
+          segment,
+          filters,
+          message: {
+            text,
+            imageUrl: document.getElementById('bImage').value.trim() || undefined,
+            couponCode: document.getElementById('bCoupon').value.trim() || undefined,
+          },
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'تعذّر إرسال الحملة');
+      resultBox.style.color = 'var(--a-success)';
+      resultBox.textContent = `تم الإرسال إلى ${d.sent} من أصل ${d.total} (فشل: ${d.failed}).`;
+    } catch (err) {
+      resultBox.style.color = 'var(--a-danger)';
+      resultBox.textContent = RB_APP.friendlyError(err);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

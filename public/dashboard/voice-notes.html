@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الرسائل الصوتية — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(',')[1]);
+    r.onerror = () => reject(new Error('تعذّر قراءة الملف'));
+    r.readAsDataURL(blob);
+  });
+}
+
+(async function () {
+  const me = await RB_APP.initShell('voice');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `<div class="app-card"><div class="app-skeleton">جاري التحميل...</div></div>`;
+
+  let state = null;
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let activeRow = null; // { kind: 'intent'|'product', key }
+
+  async function load() {
+    try {
+      const res = await fetch('/api/dashboard/voice-notes', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر جلب الرسائل الصوتية');
+      if (data.upgradeRequired) return renderUpgrade(data.error);
+      state = data;
+      render();
+    } catch (err) {
+      content.innerHTML = `<div class="app-card"><div class="app-error-text">${escapeHtml(RB_APP.friendlyError(err))}</div></div>`;
+    }
+  }
+
+  function renderUpgrade(message) {
+    content.innerHTML = `
+      <div class="app-card">
+        <div class="app-empty">${RB_APP.svg('empty')}<h3>ميزة مدفوعة</h3><p>${escapeHtml(message)}</p></div>
+      </div>`;
+  }
+
+  const NO_PRODUCT_LABELS = { ask: 'اسأل عن المنتج', text: 'أرسل رسالة نصية', none: 'لا ترسل شيئًا' };
+
+  function conditionsSummary(i) {
+    // "تعمل عندما..." - وصف مبسّط لشرط التشغيل، حتى يفهم التاجر وظيفة كل رسالة بلا شرح
+    if (!i.conditions.requiresProduct) return `${escapeHtml(i.label.replace(/^\S+\s/, ''))} (بلا شرط منتج)`;
+    return `${escapeHtml(i.label.replace(/^\S+\s/, ''))} + يوجد منتج معروف`;
+  }
+
+  function audioCell(url) {
+    return url
+      ? `<audio controls src="${url}" style="height:32px;max-width:220px"></audio>`
+      : '<span style="color:var(--a-muted);font-size:.85rem">لا توجد رسالة مسجّلة</span>';
+  }
+
+  function recordControls(kind, key, url) {
+    return `
+      <button class="app-btn app-btn-ghost recBtn" data-kind="${kind}" data-key="${key}" style="padding:5px 10px;font-size:.78rem">${url ? 'إعادة التسجيل' : '🎙 تسجيل'}</button>
+      <label class="app-btn app-btn-ghost" style="padding:5px 10px;font-size:.78rem;cursor:pointer">
+        رفع ملف<input type="file" accept="audio/*" class="uploadInput" data-kind="${kind}" data-key="${key}" style="display:none" />
+      </label>
+      ${url ? `<button class="app-btn app-btn-ghost delBtn" data-kind="${kind}" data-key="${key}" style="padding:5px 10px;font-size:.78rem;color:var(--a-danger)">حذف</button>` : ''}
+    `;
+  }
+
+  // بطاقة مستقلة لكل رسالة صوتية عامة (حسب النية) - تعرض بوضوح: تعمل عندما، الرسالة نفسها،
+  // وقسم "شروط التشغيل" (يتطلب منتج؟ وإذا لم يُعرف المنتج شنو نفعل؟) - البند الرابع/الخامس/الثامن.
+  function intentCardHtml(i) {
+    const c = i.conditions;
+    const showNoProductBlock = c.requiresProduct;
+    return `
+      <div class="app-card" data-intent-card="${i.key}" style="margin-bottom:12px">
+        <div class="app-card-head"><h3>🎤 ${escapeHtml(i.label)}</h3></div>
+        <p style="color:var(--a-muted);font-size:.8rem;margin:-4px 0 10px">تعمل عندما: ${conditionsSummary(i)}</p>
+
+        <div style="margin-bottom:10px">${audioCell(i.url)}</div>
+        <div style="white-space:nowrap;margin-bottom:${showNoProductBlock ? '14px' : '0'}">${recordControls('intent', i.key, i.url)}</div>
+
+        ${showNoProductBlock ? `
+          <div style="border-top:1px solid var(--a-border,#2a2a35);padding-top:10px">
+            <div style="font-size:.82rem;color:var(--a-muted);margin-bottom:6px">شروط التشغيل — إذا لم يُعرف المنتج:</div>
+            <div class="noProductActions" data-key="${i.key}" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+              ${Object.keys(NO_PRODUCT_LABELS).map((action) => `
+                <button class="app-btn ${c.noProductAction === action ? 'app-btn-primary' : 'app-btn-ghost'} noProductActionBtn"
+                  data-key="${i.key}" data-action="${action}" style="padding:5px 10px;font-size:.78rem">
+                  ${NO_PRODUCT_LABELS[action]}
+                </button>
+              `).join('')}
+            </div>
+            <div class="noProductTextWrap" data-key="${i.key}" style="display:${c.noProductAction === 'text' ? 'block' : 'none'}">
+              <input type="text" class="app-input noProductTextInput" data-key="${i.key}"
+                placeholder="مثلاً: يمكنك كتابة اسم المنتج حتى أخبرك بالسعر."
+                value="${escapeHtml(c.noProductText || '')}" style="width:100%;margin-bottom:6px" />
+              <button class="app-btn app-btn-primary saveNoProductTextBtn" data-key="${i.key}" style="padding:5px 12px;font-size:.78rem">حفظ النص</button>
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  function productRowHtml(id, label, url) {
+    return `
+      <tr data-kind="product" data-key="${id}">
+        <td>${escapeHtml(label)}</td>
+        <td>${audioCell(url)}</td>
+        <td style="white-space:nowrap">${recordControls('product', id, url)}</td>
+      </tr>
+    `;
+  }
+
+  function render() {
+    content.innerHTML = `
+      <div style="margin-bottom:6px">
+        <h3 style="margin:0 0 4px">رسائل صوتية عامة (حسب نية الزبون)</h3>
+        <p style="color:var(--a-muted);font-size:.85rem;margin:0 0 14px">تُرسل تلقائيًا للزبون بصوتك عندما نفهم نيته من رسالته (تحية، سعر، توصيل...) - وليس فقط بناءً على كلمة معينة. لكل رسالة "شروط تشغيل" خاصة بها تظهر تحتها.</p>
+      </div>
+      ${state.intents.map(intentCardHtml).join('')}
+
+      <div class="app-card">
+        <div class="app-card-head"><h3>رسائل صوتية لمنتجات محدّدة</h3></div>
+        <p style="color:var(--a-muted);font-size:.85rem;margin-top:-6px">اشرح المنتج بصوتك (السعر، الميزات...) وتُرسل مع تفاصيل المنتج تلقائيًا.</p>
+        ${state.products.length ? `
+          <table class="app-table">
+            <thead><tr><th>المنتج</th><th>الرسالة</th><th></th></tr></thead>
+            <tbody>${state.products.map((p) => {
+              const existing = state.productNotes.find((n) => n.id === p.id);
+              return productRowHtml(p.id, p.name, existing ? existing.url : null);
+            }).join('')}</tbody>
+          </table>
+        ` : `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد منتجات بعد</h3><p>أضف منتجات أولًا من قسم "المنتجات".</p></div>`}
+      </div>
+
+      <div id="recorderModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;align-items:center;justify-content:center">
+        <div class="app-card" style="max-width:360px;width:90%;margin:0">
+          <div class="app-card-head"><h3 id="recTitle">تسجيل رسالة صوتية</h3></div>
+          <div id="recStatus" style="text-align:center;padding:20px 0;color:var(--a-muted)">اضغط "ابدأ التسجيل" وتكلّم بوضوح</div>
+          <div style="display:flex;gap:8px;justify-content:center">
+            <button id="recStart" class="app-btn app-btn-primary">🔴 ابدأ التسجيل</button>
+            <button id="recStop" class="app-btn app-btn-ghost" style="display:none">⏹ إيقاف</button>
+          </div>
+          <div id="recPreview" style="display:none;text-align:center;margin-top:14px">
+            <audio id="recAudio" controls style="width:100%"></audio>
+            <div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
+              <button id="recSave" class="app-btn app-btn-primary">حفظ</button>
+              <button id="recRetry" class="app-btn app-btn-ghost">إعادة المحاولة</button>
+            </div>
+          </div>
+          <button id="recClose" class="app-btn app-btn-ghost" style="width:100%;margin-top:10px">إغلاق</button>
+        </div>
+      </div>
+    `;
+
+    content.querySelectorAll('.recBtn').forEach((btn) => {
+      btn.addEventListener('click', () => openRecorder(btn.dataset.kind, btn.dataset.key));
+    });
+
+    content.querySelectorAll('.uploadInput').forEach((input) => {
+      input.addEventListener('change', async () => {
+        if (!input.files[0]) return;
+        try {
+          const base64 = await blobToBase64(input.files[0]);
+          await saveNote(input.dataset.kind, input.dataset.key, base64, input.files[0].type || 'audio/mpeg');
+        } catch (err) { alert(RB_APP.friendlyError(err, 'تعذّر رفع الملف')); }
+      });
+    });
+
+    content.querySelectorAll('.delBtn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('حذف هذه الرسالة الصوتية؟')) return;
+        btn.disabled = true;
+        try {
+          const url = btn.dataset.kind === 'intent' ? `/api/dashboard/voice-notes/intent/${btn.dataset.key}` : `/api/dashboard/voice-notes/product/${btn.dataset.key}`;
+          const r = await fetch(url, { method: 'DELETE', credentials: 'same-origin' });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error);
+          load();
+        } catch (err) { alert(RB_APP.friendlyError(err, 'تعذّر الحذف')); btn.disabled = false; }
+      });
+    });
+
+    // شروط التشغيل: اختيار الفعل البديل إذا لم يُعرف المنتج
+    content.querySelectorAll('.noProductActionBtn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const key = btn.dataset.key;
+        const action = btn.dataset.action;
+        const wrap = content.querySelector(`.noProductTextWrap[data-key="${key}"]`);
+        if (action === 'text') {
+          // نعرض حقل النص أولًا، والحفظ الفعلي يصير بزر "حفظ النص" (حتى يقدر يكتب بلا انقطاع)
+          if (wrap) wrap.style.display = 'block';
+          return;
+        }
+        if (wrap) wrap.style.display = 'none';
+        await saveConditions(key, { noProductAction: action });
+      });
+    });
+
+    content.querySelectorAll('.saveNoProductTextBtn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const key = btn.dataset.key;
+        const input = content.querySelector(`.noProductTextInput[data-key="${key}"]`);
+        btn.disabled = true;
+        try {
+          await saveConditions(key, { noProductAction: 'text', noProductText: input.value.trim() });
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  async function saveConditions(key, partial) {
+    try {
+      const r = await fetch(`/api/dashboard/voice-notes/intent/${key}/conditions`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify(partial),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      await load();
+    } catch (err) {
+      alert(RB_APP.friendlyError(err, 'تعذّر حفظ شروط التشغيل'));
+    }
+  }
+
+  function openRecorder(kind, key) {
+    activeRow = { kind, key };
+    const modal = document.getElementById('recorderModal');
+    modal.style.display = 'flex';
+    document.getElementById('recStatus').textContent = 'اضغط "ابدأ التسجيل" وتكلّم بوضوح';
+    document.getElementById('recStart').style.display = 'inline-flex';
+    document.getElementById('recStop').style.display = 'none';
+    document.getElementById('recPreview').style.display = 'none';
+  }
+
+  document.addEventListener('click', (e) => {
+    if (e.target.id === 'recClose') {
+      document.getElementById('recorderModal').style.display = 'none';
+      if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+    }
+  });
+
+  async function startRecording() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert('متصفحك لا يدعم التسجيل الصوتي. استعمل زر "رفع ملف" بدلًا من ذلك.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+        const audio = document.getElementById('recAudio');
+        audio.src = URL.createObjectURL(blob);
+        audio.dataset.blobType = blob.type;
+        document.getElementById('recPreview').style.display = 'block';
+        document.getElementById('recStatus').textContent = 'استمع للتسجيل قبل الحفظ';
+      };
+      mediaRecorder.start();
+      document.getElementById('recStart').style.display = 'none';
+      document.getElementById('recStop').style.display = 'inline-flex';
+      document.getElementById('recStatus').textContent = '🔴 جاري التسجيل...';
+    } catch (err) {
+      alert('تعذّر الوصول للميكروفون. تأكد من السماح للموقع باستعمال الميكروفون.');
+    }
+  }
+
+  async function saveNote(kind, key, base64, mimeType) {
+    const url = kind === 'intent' ? `/api/dashboard/voice-notes/intent/${key}` : `/api/dashboard/voice-notes/product/${key}`;
+    const r = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+      body: JSON.stringify({ base64, mimeType }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'تعذّر الحفظ');
+    document.getElementById('recorderModal').style.display = 'none';
+    load();
+  }
+
+  document.getElementById('appPageContent').addEventListener('click', async (e) => {
+    if (e.target.id === 'recStart') startRecording();
+    if (e.target.id === 'recStop' && mediaRecorder) mediaRecorder.stop();
+    if (e.target.id === 'recRetry') openRecorder(activeRow.kind, activeRow.key);
+    if (e.target.id === 'recSave') {
+      const audio = document.getElementById('recAudio');
+      try {
+        const blob = await fetch(audio.src).then((r) => r.blob());
+        const base64 = await blobToBase64(blob);
+        e.target.disabled = true;
+        await saveNote(activeRow.kind, activeRow.key, base64, audio.dataset.blobType || 'audio/webm');
+      } catch (err) {
+        alert(RB_APP.friendlyError(err, 'تعذّر الحفظ'));
+        e.target.disabled = false;
+      }
+    }
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

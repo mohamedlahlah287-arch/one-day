@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <defs>
+    <linearGradient id="rb-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E23744"/>
+      <stop offset="100%" stop-color="#8E1620"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="156" height="156" rx="34" fill="url(#rb-grad)"/>
+  <!-- abstract "R" monogram with a signal/chat notch, minimal and mark-like -->
+  <path d="M52 38h34c14.36 0 26 11.64 26 26 0 10.4-6.1 19.36-14.92 23.53L118 122h-19.4l-17.8-31H70v31H52V38zm18 15v22h16c6.08 0 11-4.92 11-11s-4.92-11-11-11H70z" fill="#FFFFFF"/>
+</svg>

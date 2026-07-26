@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>التحليلات الكاملة — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function fmtNum(n) { return Number(n || 0).toLocaleString('ar'); }
+
+function revenueChart(rows) {
+  const w = 720, h = 160, pad = 8;
+  const max = Math.max(1, ...rows.map((r) => r.revenue));
+  const barW = (w - pad * 2) / rows.length;
+  const bars = rows.map((r, i) => {
+    const barH = Math.max(1, (r.revenue / max) * (h - pad * 2));
+    const x = pad + i * barW;
+    const y = h - pad - barH;
+    return `<rect x="${x}" y="${y}" width="${Math.max(1, barW - 1.5)}" height="${barH}" fill="var(--a-accent)" rx="1.5"><title>${r.date}: ${fmtNum(r.revenue)} دج</title></rect>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:160px" preserveAspectRatio="none">${bars}</svg>`;
+}
+
+(async function () {
+  const me = await RB_APP.initShell('analytics');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `<div class="app-card"><div class="app-skeleton">جاري التحميل...</div></div>`;
+
+  try {
+    const res = await fetch('/api/dashboard/analytics', { credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'تعذّر جلب التحليلات');
+
+    if (data.upgradeRequired) {
+      content.innerHTML = `
+        <div class="app-card">
+          <div class="app-empty">${RB_APP.svg('empty')}<h3>ميزة مدفوعة</h3><p>${escapeHtml(data.error)}</p></div>
+        </div>`;
+      return;
+    }
+
+    const statusEntries = Object.entries(data.ordersByStatus || {});
+
+    content.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+        <div class="app-card" style="margin:0"><div style="color:var(--a-muted);font-size:.78rem">إجمالي الإيرادات</div><div style="font-size:1.5rem;font-weight:650;margin-top:4px">${fmtNum(data.totalRevenue)} دج</div></div>
+        <div class="app-card" style="margin:0"><div style="color:var(--a-muted);font-size:.78rem">إجمالي الطلبات</div><div style="font-size:1.5rem;font-weight:650;margin-top:4px">${fmtNum(data.totalOrders)}</div></div>
+        <div class="app-card" style="margin:0"><div style="color:var(--a-muted);font-size:.78rem">متوسط قيمة الطلب</div><div style="font-size:1.5rem;font-weight:650;margin-top:4px">${fmtNum(data.avgOrderValue)} دج</div></div>
+        <div class="app-card" style="margin:0"><div style="color:var(--a-muted);font-size:.78rem">نسبة رفض الطلبات</div><div style="font-size:1.5rem;font-weight:650;margin-top:4px">${data.rejectionRate}%</div></div>
+        <div class="app-card" style="margin:0"><div style="color:var(--a-muted);font-size:.78rem">معدل التحويل (طلبات/رسائل)</div><div style="font-size:1.5rem;font-weight:650;margin-top:4px">${data.conversionRate === null ? '—' : data.conversionRate + '%'}</div></div>
+        <div class="app-card" style="margin:0"><div style="color:var(--a-muted);font-size:.78rem">عدد الرسائل</div><div style="font-size:1.5rem;font-weight:650;margin-top:4px">${fmtNum(data.messageCount)}</div></div>
+      </div>
+
+      <div class="app-card">
+        <div class="app-card-head"><h3>الإيرادات - آخر 30 يوم</h3></div>
+        ${revenueChart(data.revenueByDay)}
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="app-card">
+          <div class="app-card-head"><h3>الأكثر مبيعًا</h3></div>
+          ${data.topProducts.length ? `
+            <table class="app-table">
+              <thead><tr><th>المنتج</th><th>المبيعات</th><th>الإيرادات</th></tr></thead>
+              <tbody>
+                ${data.topProducts.map((p) => `<tr><td>${escapeHtml(p.productName)}</td><td class="num">${fmtNum(p.count)}</td><td class="num">${fmtNum(p.revenue)} دج</td></tr>`).join('')}
+              </tbody>
+            </table>
+          ` : `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد بيانات كافية بعد</h3></div>`}
+        </div>
+
+        <div class="app-card">
+          <div class="app-card-head"><h3>أفضل العملاء</h3></div>
+          ${data.topCustomers.length ? `
+            <table class="app-table">
+              <thead><tr><th>الاسم</th><th>الطلبات</th><th>الإنفاق</th></tr></thead>
+              <tbody>
+                ${data.topCustomers.map((c) => `<tr><td>${escapeHtml(c.name || '—')}</td><td class="num">${fmtNum(c.ordersCount)}</td><td class="num">${fmtNum(c.revenue)} دج</td></tr>`).join('')}
+              </tbody>
+            </table>
+          ` : `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد بيانات كافية بعد</h3></div>`}
+        </div>
+      </div>
+
+      <div class="app-card">
+        <div class="app-card-head"><h3>الطلبات حسب الحالة</h3></div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          ${statusEntries.length ? statusEntries.map(([status, count]) => `
+            <span class="app-status-pill neutral">${escapeHtml(status)}: ${fmtNum(count)}</span>
+          `).join('') : '<span style="color:var(--a-muted)">لا توجد طلبات بعد</span>'}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+        <div class="app-card">
+          <div class="app-card-head"><h3>أكثر الولايات شراءً</h3></div>
+          ${data.topWilayas?.length ? `
+            <table class="app-table">
+              <thead><tr><th>الولاية</th><th>الطلبات</th></tr></thead>
+              <tbody>${data.topWilayas.map((w) => `<tr><td>${escapeHtml(w.wilaya)}</td><td class="num">${fmtNum(w.count)}</td></tr>`).join('')}</tbody>
+            </table>
+          ` : `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد بيانات كافية بعد</h3></div>`}
+        </div>
+
+        <div class="app-card">
+          <div class="app-card-head"><h3>أفضل أوقات الطلبات</h3></div>
+          ${data.bestHours?.length ? `
+            <table class="app-table">
+              <thead><tr><th>الساعة</th><th>عدد الطلبات</th></tr></thead>
+              <tbody>${data.bestHours.map((h) => `<tr><td>${h.hour}:00</td><td class="num">${fmtNum(h.count)}</td></tr>`).join('')}</tbody>
+            </table>
+          ` : `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد بيانات كافية بعد</h3></div>`}
+        </div>
+
+        <div class="app-card">
+          <div class="app-card-head"><h3>أداء الموظفين</h3></div>
+          ${data.staffPerformance?.length ? `
+            <table class="app-table">
+              <thead><tr><th>الموظف</th><th>طلبات تمت معالجتها</th></tr></thead>
+              <tbody>${data.staffPerformance.map((s) => `<tr><td>${escapeHtml(s.name)}</td><td class="num">${fmtNum(s.ordersHandled)}</td></tr>`).join('')}</tbody>
+            </table>
+          ` : `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد بيانات كافية بعد</h3><p>تُحتسب من آخر مَن غيّر حالة كل طلب.</p></div>`}
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    content.innerHTML = `<div class="app-card"><div class="app-error-text">${escapeHtml(RB_APP.friendlyError(err))}</div></div>`;
+  }
+})();
+</script>
+</body>
+</html>

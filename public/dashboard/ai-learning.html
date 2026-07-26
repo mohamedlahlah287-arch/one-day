@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الذكاء الاصطناعي والتعلّم — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function timeAgo(ts) {
+  if (!ts) return '—';
+  const d = ts._seconds ? new Date(ts._seconds * 1000) : new Date(ts);
+  return d.toLocaleString('ar');
+}
+
+(async function () {
+  const me = await RB_APP.initShell('ai');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `
+    <div class="app-tabs" id="aiTabs" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="app-btn app-btn-primary tabBtn" data-tab="overview">نظرة عامة</button>
+      <button class="app-btn app-btn-ghost tabBtn" data-tab="review">قائمة المراجعة</button>
+      <button class="app-btn app-btn-ghost tabBtn" data-tab="dictionary">القاموس</button>
+      <button class="app-btn app-btn-ghost tabBtn" data-tab="decisions">دفتر القرارات</button>
+    </div>
+    <div id="tabContent"><div class="app-card"><div class="app-skeleton">جاري التحميل...</div></div></div>
+  `;
+
+  document.querySelectorAll('.tabBtn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tabBtn').forEach((b) => b.className = 'app-btn app-btn-ghost tabBtn');
+      btn.className = 'app-btn app-btn-primary tabBtn';
+      showTab(btn.dataset.tab);
+    });
+  });
+
+  async function showTab(tab) {
+    const wrap = document.getElementById('tabContent');
+    wrap.innerHTML = `<div class="app-card"><div class="app-skeleton">جاري التحميل...</div></div>`;
+    if (tab === 'overview') return loadOverview(wrap);
+    if (tab === 'review') return loadReview(wrap);
+    if (tab === 'dictionary') return loadDictionary(wrap);
+    if (tab === 'decisions') return loadDecisions(wrap);
+  }
+
+  async function loadOverview(wrap) {
+    try {
+      const res = await fetch('/api/dashboard/ai/overview', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر جلب التقرير');
+      const r = data.report;
+      wrap.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">
+          <div class="app-card" style="margin:0"><div style="color:var(--a-muted);font-size:.78rem">محادثات آخر 7 أيام</div><div style="font-size:1.4rem;font-weight:650;margin-top:4px">${r.totalConversations}</div></div>
+          <div class="app-card" style="margin:0"><div style="color:var(--a-muted);font-size:.78rem">ردود عدّلتها</div><div style="font-size:1.4rem;font-weight:650;margin-top:4px">${r.editedRepliesCount}</div></div>
+          <div class="app-card" style="margin:0"><div style="color:var(--a-muted);font-size:.78rem">كلمات جديدة تعلّمها البوت</div><div style="font-size:1.4rem;font-weight:650;margin-top:4px">${r.newDictionaryTermsCount}</div></div>
+          <div class="app-card" style="margin:0"><div style="color:var(--a-muted);font-size:.78rem">قرارات جديدة</div><div style="font-size:1.4rem;font-weight:650;margin-top:4px">${r.newDecisionsCount}</div></div>
+        </div>
+
+        <div class="app-card">
+          <div class="app-card-head"><h3>أكثر الأسئلة تكرارًا</h3></div>
+          ${r.topQuestions.length ? `
+            <table class="app-table">
+              <thead><tr><th>السؤال</th><th>عدد المرات</th></tr></thead>
+              <tbody>${r.topQuestions.map((q) => `<tr><td>${escapeHtml(q.value)}</td><td class="num">${q.count}</td></tr>`).join('')}</tbody>
+            </table>
+          ` : `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد بيانات كافية بعد هذا الأسبوع</h3></div>`}
+        </div>
+
+        ${r.suggestions.length ? `
+          <div class="app-card">
+            <div class="app-card-head"><h3>اقتراحات</h3></div>
+            <ul style="margin:0;padding-inline-start:20px;color:var(--a-text);line-height:1.9">
+              ${r.suggestions.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+      `;
+    } catch (err) {
+      wrap.innerHTML = `<div class="app-card"><div class="app-error-text">${escapeHtml(RB_APP.friendlyError(err))}</div></div>`;
+    }
+  }
+
+  async function loadReview(wrap) {
+    try {
+      const res = await fetch('/api/dashboard/ai/review-queue', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر جلب قائمة المراجعة');
+
+      if (!data.items.length) {
+        wrap.innerHTML = `<div class="app-card"><div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد ردود تحتاج مراجعة حاليًا</h3><p>كل الردود الأخيرة إما مطابقة ثابتة أو تمت مراجعتها.</p></div></div>`;
+        return;
+      }
+
+      wrap.innerHTML = `
+        <div class="app-card">
+          <div class="app-card-head"><h3>ردود يحتاج الذكاء الاصطناعي رأيك فيها (${data.items.length})</h3></div>
+          <p style="color:var(--a-muted);font-size:.85rem;margin-top:-6px">هذه ردود لم يُحسم مصدرها من القاموس أو القرارات الثابتة - راجعها لتحسين دقة البوت مستقبلًا.</p>
+          <div id="reviewList" style="display:flex;flex-direction:column;gap:10px">
+            ${data.items.map((it) => `
+              <div class="app-card" data-id="${it.id}" style="margin:0;background:var(--a-bg-alt)">
+                <div style="font-size:.8rem;color:var(--a-muted)">سؤال الزبون</div>
+                <div style="margin-bottom:8px">${escapeHtml(it.customerMessage)}</div>
+                <div style="font-size:.8rem;color:var(--a-muted)">رد البوت</div>
+                <div style="margin-bottom:10px">${escapeHtml(it.botReply)}</div>
+                <textarea class="editBox" placeholder="اكتب الرد الصحيح هنا إذا احتاج تعديل..." style="width:100%;min-height:60px;margin-bottom:8px"></textarea>
+                <div style="display:flex;gap:8px">
+                  <button class="app-btn app-btn-primary approveBtn" style="padding:6px 14px;font-size:.8rem">${RB_APP.svg('check')} الرد صحيح</button>
+                  <button class="app-btn app-btn-ghost editBtn" style="padding:6px 14px;font-size:.8rem">${RB_APP.svg('storeSettings')} حفظ التعديل</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      wrap.querySelectorAll('.approveBtn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const card = btn.closest('[data-id]');
+          btn.disabled = true;
+          try {
+            const r = await fetch(`/api/dashboard/ai/review-queue/${card.dataset.id}/approve`, { method: 'POST', credentials: 'same-origin' });
+            const d = await r.json();
+            if (!r.ok) throw new Error(d.error);
+            card.remove();
+          } catch (err) { alert(RB_APP.friendlyError(err, 'تعذّر الاعتماد')); btn.disabled = false; }
+        });
+      });
+
+      wrap.querySelectorAll('.editBtn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const card = btn.closest('[data-id]');
+          const finalReply = card.querySelector('.editBox').value.trim();
+          if (!finalReply) { alert('اكتب الرد الصحيح أولًا.'); return; }
+          btn.disabled = true;
+          try {
+            const r = await fetch(`/api/dashboard/ai/review-queue/${card.dataset.id}/edit`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+              body: JSON.stringify({ finalReply }),
+            });
+            const d = await r.json();
+            if (!r.ok) throw new Error(d.error);
+            card.remove();
+          } catch (err) { alert(RB_APP.friendlyError(err, 'تعذّر الحفظ')); btn.disabled = false; }
+        });
+      });
+    } catch (err) {
+      wrap.innerHTML = `<div class="app-card"><div class="app-error-text">${escapeHtml(RB_APP.friendlyError(err))}</div></div>`;
+    }
+  }
+
+  async function loadDictionary(wrap) {
+    async function refresh() {
+      const res = await fetch('/api/dashboard/ai/dictionary', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر جلب القاموس');
+      return data.terms;
+    }
+
+    try {
+      const terms = await refresh();
+      wrap.innerHTML = `
+        <div class="app-card">
+          <div class="app-card-head"><h3>إضافة مصطلح جديد</h3></div>
+          <p style="color:var(--a-muted);font-size:.85rem;margin-top:-6px">علّم البوت كلمات محلية يستعملها زبائنك (مثلاً "بقداش" = كم السعر، "لافريزون" = التوصيل).</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="app-field" style="margin-bottom:0"><label>المصطلح</label><input id="dTerm" type="text" placeholder="مثال: بقداش" /></div>
+            <div class="app-field" style="margin-bottom:0"><label>المعنى/التفسير</label><input id="dMeaning" type="text" placeholder="مثال: يسأل عن السعر" /></div>
+          </div>
+          <button id="dSubmit" class="app-btn app-btn-primary">إضافة</button>
+          <span id="dMsg" class="app-error-text" style="display:none;margin-inline-start:10px"></span>
+        </div>
+        <div class="app-card">
+          <div class="app-card-head"><h3>القاموس الحالي (${terms.length})</h3></div>
+          <div id="dictWrap"></div>
+        </div>
+      `;
+
+      function renderTerms(list) {
+        const dw = document.getElementById('dictWrap');
+        if (!list.length) {
+          dw.innerHTML = `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد مصطلحات بعد</h3></div>`;
+          return;
+        }
+        dw.innerHTML = `
+          <table class="app-table">
+            <thead><tr><th>المصطلح</th><th>المعنى</th><th>عدد الاستخدام</th><th></th></tr></thead>
+            <tbody>
+              ${list.map((t) => `
+                <tr data-id="${t.id}">
+                  <td>${escapeHtml(t.term)}</td>
+                  <td>${escapeHtml(t.meaning)}</td>
+                  <td class="num">${t.usageCount || 1}</td>
+                  <td><button class="app-btn app-btn-ghost delBtn" style="padding:5px 10px;font-size:.78rem;color:var(--a-danger)">حذف</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        dw.querySelectorAll('.delBtn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('حذف هذا المصطلح؟')) return;
+            const row = btn.closest('tr');
+            btn.disabled = true;
+            try {
+              const r = await fetch(`/api/dashboard/ai/dictionary/${row.dataset.id}`, { method: 'DELETE', credentials: 'same-origin' });
+              const d = await r.json();
+              if (!r.ok) throw new Error(d.error);
+              renderTerms(await refresh());
+            } catch (err) { alert(RB_APP.friendlyError(err, 'تعذّر الحذف')); btn.disabled = false; }
+          });
+        });
+      }
+      renderTerms(terms);
+
+      document.getElementById('dSubmit').addEventListener('click', async () => {
+        const msg = document.getElementById('dMsg');
+        msg.style.display = 'none';
+        const term = document.getElementById('dTerm').value.trim();
+        const meaning = document.getElementById('dMeaning').value.trim();
+        if (!term || !meaning) { msg.textContent = 'أدخل المصطلح والمعنى.'; msg.style.display = 'inline'; return; }
+        const btn = document.getElementById('dSubmit');
+        btn.disabled = true;
+        try {
+          const r = await fetch('/api/dashboard/ai/dictionary', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+            body: JSON.stringify({ term, meaning }),
+          });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error || 'تعذّر الإضافة');
+          document.getElementById('dTerm').value = '';
+          document.getElementById('dMeaning').value = '';
+          renderTerms(d.terms);
+        } catch (err) {
+          msg.textContent = RB_APP.friendlyError(err); msg.style.display = 'inline';
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    } catch (err) {
+      wrap.innerHTML = `<div class="app-card"><div class="app-error-text">${escapeHtml(RB_APP.friendlyError(err))}</div></div>`;
+    }
+  }
+
+  async function loadDecisions(wrap) {
+    async function refresh() {
+      const res = await fetch('/api/dashboard/ai/decisions', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر جلب دفتر القرارات');
+      return data.decisions;
+    }
+
+    try {
+      const decisions = await refresh();
+      wrap.innerHTML = `
+        <div class="app-card">
+          <div class="app-card-head"><h3>إضافة قرار ثابت</h3></div>
+          <p style="color:var(--a-muted);font-size:.85rem;margin-top:-6px">اربط سؤالًا شائعًا بقرار ثابت (مثال: "هل يوجد استبدال؟" ← "الاستبدال خلال 3 أيام فقط") حتى يُستعمل تلقائيًا فـ الأسئلة المشابهة.</p>
+          <div class="app-field"><label>السؤال النموذجي</label><input id="qQuestion" type="text" placeholder="مثال: هل يوجد استبدال؟" /></div>
+          <div class="app-field"><label>القرار/الرد الثابت</label><textarea id="qDecision" style="width:100%;min-height:70px" placeholder="مثال: نعم، الاستبدال متاح خلال 3 أيام من الاستلام."></textarea></div>
+          <button id="qSubmit" class="app-btn app-btn-primary">حفظ القرار</button>
+          <span id="qMsg" class="app-error-text" style="display:none;margin-inline-start:10px"></span>
+        </div>
+        <div class="app-card">
+          <div class="app-card-head"><h3>دفتر القرارات (${decisions.length})</h3></div>
+          <div id="decWrap"></div>
+        </div>
+      `;
+
+      function renderDecisions(list) {
+        const dw = document.getElementById('decWrap');
+        if (!list.length) {
+          dw.innerHTML = `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد قرارات محفوظة بعد</h3></div>`;
+          return;
+        }
+        dw.innerHTML = `
+          <table class="app-table">
+            <thead><tr><th>السؤال</th><th>القرار</th><th>مرات الاستعمال</th><th></th></tr></thead>
+            <tbody>
+              ${list.map((d) => `
+                <tr data-id="${d.id}">
+                  <td>${escapeHtml(d.question)}</td>
+                  <td>${escapeHtml(d.decisionText)}</td>
+                  <td class="num">${d.timesUsed || 0}</td>
+                  <td><button class="app-btn app-btn-ghost delBtn" style="padding:5px 10px;font-size:.78rem;color:var(--a-danger)">حذف</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        dw.querySelectorAll('.delBtn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('حذف هذا القرار؟')) return;
+            const row = btn.closest('tr');
+            btn.disabled = true;
+            try {
+              const r = await fetch(`/api/dashboard/ai/decisions/${row.dataset.id}`, { method: 'DELETE', credentials: 'same-origin' });
+              const d = await r.json();
+              if (!r.ok) throw new Error(d.error);
+              renderDecisions(await refresh());
+            } catch (err) { alert(RB_APP.friendlyError(err, 'تعذّر الحذف')); btn.disabled = false; }
+          });
+        });
+      }
+      renderDecisions(decisions);
+
+      document.getElementById('qSubmit').addEventListener('click', async () => {
+        const msg = document.getElementById('qMsg');
+        msg.style.display = 'none';
+        const question = document.getElementById('qQuestion').value.trim();
+        const decisionText = document.getElementById('qDecision').value.trim();
+        if (!question || !decisionText) { msg.textContent = 'أدخل السؤال والقرار.'; msg.style.display = 'inline'; return; }
+        const btn = document.getElementById('qSubmit');
+        btn.disabled = true;
+        try {
+          const r = await fetch('/api/dashboard/ai/decisions', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+            body: JSON.stringify({ question, decisionText }),
+          });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error || 'تعذّر الحفظ');
+          document.getElementById('qQuestion').value = '';
+          document.getElementById('qDecision').value = '';
+          renderDecisions(d.decisions);
+        } catch (err) {
+          msg.textContent = RB_APP.friendlyError(err); msg.style.display = 'inline';
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    } catch (err) {
+      wrap.innerHTML = `<div class="app-card"><div class="app-error-text">${escapeHtml(RB_APP.friendlyError(err))}</div></div>`;
+    }
+  }
+
+  showTab('overview');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظرة عامة — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+(async function () {
+  const me = await RB_APP.initShell('overview');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = '<div class="app-skeleton">جاري تحميل الإحصائيات...</div>';
+
+  try {
+    const res = await fetch('/api/auth/dashboard-stats', { credentials: 'same-origin' });
+    const s = await res.json();
+    if (!res.ok) throw new Error(s.error || 'تعذّر جلب الإحصائيات');
+
+    const usagePct = s.messageLimit ? Math.min(100, Math.round((s.messageCount / s.messageLimit) * 100)) : 0;
+    const usageTone = usagePct >= 90 ? 'down' : (usagePct >= 60 ? '' : 'up');
+
+    content.innerHTML = `
+      <div class="app-kpi-grid">
+        <div class="app-kpi">
+          <div class="app-kpi-label">رسائل مستهلكة هذا الشهر</div>
+          <div class="app-kpi-value num">${s.messageCount}<span style="font-size:.9rem;color:var(--a-muted);font-weight:500"> / ${s.messageLimit || '∞'}</span></div>
+          <div class="app-kpi-sub ${usageTone}">${usagePct}% من حد باقة ${s.planName || ''}</div>
+        </div>
+        <div class="app-kpi">
+          <div class="app-kpi-label">الطلبات</div>
+          <div class="app-kpi-value num">${s.ordersCount}</div>
+          <div class="app-kpi-sub">${Object.entries(s.ordersByStatus || {}).map(([k, v]) => `${k}: ${v}`).join(' · ') || 'لا طلبات بعد'}</div>
+        </div>
+        <div class="app-kpi">
+          <div class="app-kpi-label">المبيعات (تقديري)</div>
+          <div class="app-kpi-value num">${Math.round(s.revenue).toLocaleString('ar')}</div>
+          <div class="app-kpi-sub">من إجمالي الطلبات المسجّلة</div>
+        </div>
+        <div class="app-kpi">
+          <div class="app-kpi-label">المنتجات</div>
+          <div class="app-kpi-value num">${s.productsCount}</div>
+        </div>
+        <div class="app-kpi">
+          <div class="app-kpi-label">العملاء</div>
+          <div class="app-kpi-value num">${s.customersCount}</div>
+        </div>
+        <div class="app-kpi">
+          <div class="app-kpi-label">حالة الاشتراك</div>
+          <div class="app-kpi-value" style="font-size:1.1rem">${s.subscriptionStatus || '—'}</div>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <div class="app-card-head"><h3>البدايات السريعة</h3></div>
+        <p style="color:var(--a-muted);font-size:.85rem;margin:0 0 12px">
+          الأقسام المتقدمة (المنتجات، الطلبات، العملاء...) قيد النقل التدريجي للتصميم الجديد حسب خطة إعادة البناء —
+          تقدر متابعتها من القائمة الجانبية أولًا بأول.
+        </p>
+        <a href="/dashboard/store-settings.html" class="app-btn app-btn-ghost">إعدادات المتجر</a>
+      </div>
+    `;
+  } catch (err) {
+    content.innerHTML = `<div class="app-error-text">${RB_APP.friendlyError(err)}</div>`;
+  }
+})();
+</script>
+</body>
+</html>

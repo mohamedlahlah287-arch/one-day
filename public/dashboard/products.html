@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المنتجات — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+<style>
+  .app-img-slot { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .app-img-slot img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid var(--a-border); }
+</style>
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+(async function () {
+  const me = await RB_APP.initShell('products');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  let editingId = null;
+
+  content.innerHTML = `
+    <div class="app-card">
+      <div class="app-card-head"><h3 id="formTitle">إضافة منتج جديد</h3></div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px">
+        <div class="app-field" style="margin-bottom:0"><label>اسم المنتج</label><input id="pName" type="text" maxlength="120" /></div>
+        <div class="app-field" style="margin-bottom:0"><label>السعر</label><input id="pPrice" type="number" min="0" step="0.01" /></div>
+        <div class="app-field" style="margin-bottom:0"><label>الكمية (اختياري)</label><input id="pQty" type="number" min="0" placeholder="غير محدودة" /></div>
+      </div>
+      <div class="app-field"><label>الوصف (اختياري)</label><textarea id="pDesc" rows="2"></textarea></div>
+      <div class="app-field">
+        <label>صور المنتج (اختياري، حتى صورتين)</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div id="pImgSlot1" class="app-img-slot">
+            <input type="file" accept="image/*" id="pImgFile1" style="display:none" />
+            <button type="button" class="app-btn app-btn-ghost" id="pImgBtn1">رفع صورة 1</button>
+            <img id="pImgPreview1" style="display:none" />
+          </div>
+          <div id="pImgSlot2" class="app-img-slot">
+            <input type="file" accept="image/*" id="pImgFile2" style="display:none" />
+            <button type="button" class="app-btn app-btn-ghost" id="pImgBtn2">رفع صورة 2</button>
+            <img id="pImgPreview2" style="display:none" />
+          </div>
+        </div>
+        <p class="app-field-hint" id="pImgHint">ارفع صورة المنتج وسنولّد لك وصفًا مبدئيًا تلقائيًا من الصورة (يمكنك تعديله).</p>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button id="pSubmit" class="app-btn app-btn-primary">حفظ المنتج</button>
+        <button id="pCancel" class="app-btn app-btn-ghost" style="display:none">إلغاء التعديل</button>
+        <span id="pMsg" class="app-error-text" style="display:none;margin:0"></span>
+      </div>
+    </div>
+
+    <div class="app-card">
+      <div class="app-card-head"><h3>كل المنتجات</h3></div>
+      <div id="productsTableWrap"><div class="app-skeleton">جاري التحميل...</div></div>
+    </div>
+  `;
+
+  const nameEl = document.getElementById('pName');
+  const priceEl = document.getElementById('pPrice');
+  const qtyEl = document.getElementById('pQty');
+  const descEl = document.getElementById('pDesc');
+  const msgEl = document.getElementById('pMsg');
+  const submitBtn = document.getElementById('pSubmit');
+  const cancelBtn = document.getElementById('pCancel');
+  const formTitle = document.getElementById('formTitle');
+  const imgHint = document.getElementById('pImgHint');
+
+  // productImages[0]/[1]: روابط الصور الدائمة (بعد الرفع) - null إذا الخانة فارغة
+  let productImages = [null, null];
+
+  // يصغّر الصورة فـ المتصفح (canvas) قبل الرفع - أسرع فـ الرفع وأخف على Firestore
+  // (الحد 900 كيلوبايت خام محدد فـ ImageBlobRepository)
+  function resizeImageFile(file, maxDim = 900, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = () => { img.src = reader.result; };
+      reader.onerror = () => reject(new Error('تعذّر قراءة الصورة'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+        else if (height > maxDim) { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl.split(',')[1]);
+      };
+      img.onerror = () => reject(new Error('تعذّر تحميل الصورة'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleImageUpload(slot, file) {
+    const btn = document.getElementById(`pImgBtn${slot}`);
+    const preview = document.getElementById(`pImgPreview${slot}`);
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'جاري الرفع...';
+    try {
+      const base64 = await resizeImageFile(file);
+      const res = await fetch('/api/dashboard/products/image', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ base64, mimeType: 'image/jpeg', slot }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'تعذّر رفع الصورة');
+      productImages[slot - 1] = d.imageUrl;
+      preview.src = d.imageUrl;
+      preview.style.display = 'block';
+      btn.textContent = 'تغيير الصورة';
+      // نعبّي الوصف تلقائيًا من الذكاء الاصطناعي فقط إذا الحقل فارغ - حتى ما نمحيش وصف
+      // كتبه التاجر بنفسه (سواء فـ نفس الرفعة أو عدّله يدويًا قبل رفع الصورة)
+      if (d.description && !descEl.value.trim()) {
+        descEl.value = d.description;
+        imgHint.textContent = 'تم توليد الوصف تلقائيًا من الصورة - عدّله إذا حبيت.';
+      } else if (!d.description) {
+        imgHint.textContent = 'تم رفع الصورة. (لتوليد وصف تلقائي، فعّل خدمة الذكاء الاصطناعي من الإدارة)';
+      }
+    } catch (err) {
+      alert(RB_APP.friendlyError(err, 'تعذّر رفع الصورة'));
+      btn.textContent = originalLabel;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  [1, 2].forEach((slot) => {
+    const fileInput = document.getElementById(`pImgFile${slot}`);
+    document.getElementById(`pImgBtn${slot}`).addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) handleImageUpload(slot, fileInput.files[0]);
+      fileInput.value = '';
+    });
+  });
+
+  function resetForm() {
+    editingId = null;
+    nameEl.value = ''; priceEl.value = ''; qtyEl.value = ''; descEl.value = '';
+    productImages = [null, null];
+    [1, 2].forEach((slot) => {
+      const preview = document.getElementById(`pImgPreview${slot}`);
+      preview.style.display = 'none'; preview.src = '';
+      document.getElementById(`pImgBtn${slot}`).textContent = `رفع صورة ${slot}`;
+    });
+    imgHint.textContent = 'ارفع صورة المنتج وسنولّد لك وصفًا مبدئيًا تلقائيًا من الصورة (يمكنك تعديله).';
+    submitBtn.textContent = 'حفظ المنتج';
+    formTitle.textContent = 'إضافة منتج جديد';
+    cancelBtn.style.display = 'none';
+    msgEl.style.display = 'none';
+  }
+
+  cancelBtn.addEventListener('click', resetForm);
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  async function loadProducts() {
+    const wrap = document.getElementById('productsTableWrap');
+    try {
+      const res = await fetch('/api/dashboard/products', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر جلب المنتجات');
+
+      if (!data.products.length) {
+        wrap.innerHTML = `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد منتجات بعد</h3><p>أضف أول منتج من الفورم أعلاه.</p></div>`;
+        return;
+      }
+
+      wrap.innerHTML = `
+        <table class="app-table">
+          <thead><tr><th></th><th>الاسم</th><th>السعر</th><th>الكمية</th><th></th></tr></thead>
+          <tbody>
+            ${data.products.map((p) => `
+              <tr data-id="${p.id}">
+                <td>${p.images?.[0] ? `<img src="${p.images[0]}" style="width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid var(--a-border)" />` : ''}</td>
+                <td>${escapeHtml(p.name)}</td>
+                <td class="num">${p.price}</td>
+                <td>${p.quantity === null || p.quantity === undefined ? '<span class="app-status-pill neutral">غير محدودة</span>' : (p.quantity <= 3 ? `<span class="app-status-pill warn">${p.quantity}</span>` : p.quantity)}</td>
+                <td style="white-space:nowrap">
+                  <button class="app-btn app-btn-ghost" data-action="edit" style="padding:5px 10px;font-size:.78rem">تعديل</button>
+                  <button class="app-btn app-btn-ghost" data-action="delete" style="padding:5px 10px;font-size:.78rem;color:var(--a-danger)">حذف</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      wrap.querySelectorAll('button[data-action="edit"]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const row = btn.closest('tr');
+          const p = data.products.find((x) => x.id === row.dataset.id);
+          if (!p) return;
+          editingId = p.id;
+          nameEl.value = p.name || '';
+          priceEl.value = p.price ?? '';
+          qtyEl.value = p.quantity ?? '';
+          descEl.value = p.description || '';
+          productImages = [p.images?.[0] || null, p.images?.[1] || null];
+          [1, 2].forEach((slot) => {
+            const preview = document.getElementById(`pImgPreview${slot}`);
+            if (productImages[slot - 1]) {
+              preview.src = productImages[slot - 1]; preview.style.display = 'block';
+              document.getElementById(`pImgBtn${slot}`).textContent = 'تغيير الصورة';
+            } else {
+              preview.style.display = 'none'; preview.src = '';
+              document.getElementById(`pImgBtn${slot}`).textContent = `رفع صورة ${slot}`;
+            }
+          });
+          formTitle.textContent = `تعديل: ${p.name}`;
+          submitBtn.textContent = 'حفظ التعديلات';
+          cancelBtn.style.display = 'inline-flex';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+
+      wrap.querySelectorAll('button[data-action="delete"]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const row = btn.closest('tr');
+          if (!confirm('هل تريد حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+          btn.disabled = true;
+          try {
+            const res = await fetch(`/api/dashboard/products/${row.dataset.id}`, { method: 'DELETE', credentials: 'same-origin' });
+            const d = await res.json();
+            if (!res.ok) throw new Error(d.error);
+            loadProducts();
+          } catch (err) {
+            alert(RB_APP.friendlyError(err, 'تعذّر حذف المنتج'));
+            btn.disabled = false;
+          }
+        });
+      });
+    } catch (err) {
+      wrap.innerHTML = `<div class="app-error-text">${RB_APP.friendlyError(err)}</div>`;
+    }
+  }
+
+  submitBtn.addEventListener('click', async () => {
+    msgEl.style.display = 'none';
+    const name = nameEl.value.trim();
+    const price = priceEl.value;
+    if (name.length < 2) { msgEl.textContent = 'اسم المنتج قصير جدًا.'; msgEl.style.display = 'inline'; return; }
+    if (!price || Number(price) <= 0) { msgEl.textContent = 'أدخل سعرًا صحيحًا.'; msgEl.style.display = 'inline'; return; }
+
+    submitBtn.disabled = true;
+    const payload = { name, price, description: descEl.value.trim(), quantity: qtyEl.value, images: productImages.filter(Boolean) };
+    try {
+      const url = editingId ? `/api/dashboard/products/${editingId}` : '/api/dashboard/products';
+      const method = editingId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method, headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'تعذّر الحفظ');
+      resetForm();
+      loadProducts();
+    } catch (err) {
+      msgEl.textContent = RB_APP.friendlyError(err); msgEl.style.display = 'inline';
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  loadProducts();
+})();
+</script>
+</body>
+</html>

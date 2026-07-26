@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>السلات المتروكة — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function timeAgo(ts) {
+  if (!ts) return '—';
+  const d = ts._seconds ? new Date(ts._seconds * 1000) : new Date(ts);
+  const diffMin = Math.round((Date.now() - d.getTime()) / 60000);
+  if (diffMin < 60) return `منذ ${diffMin} د`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `منذ ${diffH} س`;
+  return `منذ ${Math.round(diffH / 24)} يوم`;
+}
+
+(async function () {
+  const me = await RB_APP.initShell('carts');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `<div class="app-card"><div class="app-skeleton">جاري التحميل...</div></div>`;
+
+  try {
+    const res = await fetch('/api/dashboard/abandoned-carts', { credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'تعذّر جلب السلات المتروكة');
+
+    if (data.upgradeRequired) {
+      content.innerHTML = `
+        <div class="app-card">
+          <div class="app-empty">${RB_APP.svg('empty')}<h3>ميزة مدفوعة</h3><p>${escapeHtml(data.error)}</p></div>
+        </div>`;
+      return;
+    }
+
+    if (!data.carts.length) {
+      content.innerHTML = `
+        <div class="app-card">
+          <div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد سلات متروكة حاليًا</h3><p>عندما يبدأ زبون طلبًا عبر ماسنجر بلا إكمال، سيظهر هنا مع التذكيرات المرسلة له تلقائيًا.</p></div>
+        </div>`;
+      return;
+    }
+
+    content.innerHTML = `
+      <div class="app-card">
+        <div class="app-card-head"><h3>سلات متروكة حاليًا (${data.carts.length})</h3></div>
+        <p style="color:var(--a-muted);font-size:.85rem;margin-top:-6px">
+          يُرسل النظام تلقائيًا تذكيرًا لطيفًا بعد ساعة، وآخر بعد يوم كامل - بلا إزعاج أكثر من ذلك.
+        </p>
+        <table class="app-table">
+          <thead><tr><th>الزبون</th><th>الهاتف</th><th>المنتج</th><th>آخر نشاط</th><th>التذكيرات المرسلة</th></tr></thead>
+          <tbody>
+            ${data.carts.map((c) => `
+              <tr>
+                <td>${escapeHtml(c.customerName || '—')}</td>
+                <td class="num">${escapeHtml(c.phone || '—')}</td>
+                <td>${escapeHtml(c.productName)}</td>
+                <td>${timeAgo(c.updatedAt)}</td>
+                <td><span class="app-status-pill ${c.reminderStage > 0 ? 'ok' : 'neutral'}">${c.reminderStage === 0 ? 'لم يُرسل بعد' : c.reminderStage === 1 ? 'تذكير أول' : 'تذكيران'}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (err) {
+    content.innerHTML = `<div class="app-card"><div class="app-error-text">${escapeHtml(RB_APP.friendlyError(err))}</div></div>`;
+  }
+})();
+</script>
+</body>
+</html>

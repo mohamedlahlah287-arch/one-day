@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إعدادات الحساب — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+(async function () {
+  const me = await RB_APP.initShell('account');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  const u = me.user;
+
+  content.innerHTML = `
+    <div class="app-card" style="max-width:520px">
+      <div class="app-card-head"><h3>بياناتي الشخصية</h3></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        ${u.avatarUrl ? `<img src="${u.avatarUrl}" style="width:44px;height:44px;border-radius:50%" alt="" />` : ''}
+        <div>
+          <div style="font-weight:650">${u.fullName || 'بدون اسم'}</div>
+          <div style="color:var(--a-muted);font-size:.82rem">${u.email}</div>
+        </div>
+      </div>
+      <div class="app-field"><label>الاسم الكامل</label><input id="aName" type="text" value="${(u.fullName || '').replace(/"/g,'&quot;')}" /></div>
+      <div class="app-field"><label>رقم الهاتف</label><input id="aPhone" type="tel" value="${(u.phone || '').replace(/"/g,'&quot;')}" /></div>
+      <div class="app-field-hint" style="margin-bottom:14px">البريد الإلكتروني مرتبط بحساب جوجل الذي دخلت به، ولا يمكن تعديله من هنا.</div>
+      <button id="saveBtn" class="app-btn app-btn-primary">حفظ التغييرات</button>
+      <span id="saveMsg" style="margin-inline-start:10px;font-size:.82rem;display:none"></span>
+    </div>
+
+    <div class="app-card" style="max-width:520px">
+      <div class="app-card-head"><h3>الجلسة</h3></div>
+      <p style="color:var(--a-muted);font-size:.85rem;margin:0 0 12px">تسجيل الخروج من هذا الجهاز فقط.</p>
+      <button id="logoutBtn" class="app-btn app-btn-ghost" style="color:var(--a-danger)">${RB_APP.svg('logout')} تسجيل الخروج</button>
+    </div>
+  `;
+
+  document.getElementById('saveBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('saveBtn');
+    const msg = document.getElementById('saveMsg');
+    btn.disabled = true;
+    msg.style.display = 'none';
+    try {
+      const payload = { fullName: document.getElementById('aName').value.trim(), phone: document.getElementById('aPhone').value.trim() };
+      const r = await fetch('/api/dashboard/account', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'تعذّر الحفظ');
+      msg.textContent = 'تم الحفظ بنجاح.'; msg.style.color = 'var(--a-success)'; msg.style.display = 'inline';
+    } catch (err) {
+      msg.textContent = RB_APP.friendlyError(err); msg.style.color = 'var(--a-danger)'; msg.style.display = 'inline';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch (e) {}
+    window.location.href = '/login.html';
+  });
+})();
+</script>
+</body>
+</html>

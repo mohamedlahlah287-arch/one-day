@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الموظفون — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+(async function () {
+  const me = await RB_APP.initShell('staff');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `<div class="app-card"><div class="app-skeleton">جاري التحميل...</div></div>`;
+
+  let state = null;
+  const selected = new Set();
+
+  async function load() {
+    try {
+      const res = await fetch('/api/dashboard/staff', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر جلب أعضاء الفريق');
+      if (data.upgradeRequired) return renderUpgrade(data.error);
+      state = data;
+      render();
+    } catch (err) {
+      content.innerHTML = `<div class="app-card"><div class="app-error-text">${escapeHtml(RB_APP.friendlyError(err))}</div></div>`;
+    }
+  }
+
+  function renderUpgrade(message) {
+    content.innerHTML = `
+      <div class="app-card">
+        <div class="app-empty">${RB_APP.svg('empty')}<h3>ميزة مدفوعة</h3><p>${escapeHtml(message)}</p></div>
+      </div>`;
+  }
+
+  function togglePermission(key) {
+    if (key === state.allPermissionKey) {
+      selected.clear();
+      selected.add(key);
+    } else {
+      selected.delete(state.allPermissionKey);
+      if (selected.has(key)) selected.delete(key); else selected.add(key);
+    }
+    renderPermissionChecks();
+  }
+
+  function renderPermissionChecks() {
+    const wrap = document.getElementById('permChecks');
+    if (!wrap) return;
+    wrap.querySelectorAll('input[type=checkbox]').forEach((cb) => {
+      cb.checked = selected.has(cb.value);
+    });
+  }
+
+  function render() {
+    content.innerHTML = `
+      <div class="app-card">
+        <div class="app-card-head"><h3>إضافة عضو جديد</h3></div>
+        <p style="color:var(--a-muted);font-size:.85rem;margin-top:-6px">
+          يحتاج العضو معرّف تيليغرام الرقمي (يمكنه الحصول عليه من بوت مثل @userinfobot)، وسيدير المتجر من بوت التاجر على تيليغرام حسب الصلاحيات التي تمنحه إياها.
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="app-field" style="margin-bottom:0"><label>معرّف تيليغرام (رقم)</label><input id="sTelegramId" type="text" inputmode="numeric" placeholder="مثال: 123456789" /></div>
+          <div class="app-field" style="margin-bottom:0"><label>الاسم (اختياري)</label><input id="sName" type="text" placeholder="مثال: سارة" /></div>
+        </div>
+
+        <div class="app-field">
+          <label>حزمة جاهزة</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            ${state.presets.map((p, i) => `<button type="button" class="app-btn app-btn-ghost presetBtn" data-i="${i}" style="padding:6px 12px;font-size:.8rem">${escapeHtml(p.label)}</button>`).join('')}
+          </div>
+        </div>
+
+        <div class="app-field">
+          <label>أو اختر الصلاحيات يدويًا</label>
+          <div id="permChecks" style="display:flex;flex-wrap:wrap;gap:14px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:.85rem">
+              <input type="checkbox" value="${state.allPermissionKey}" />👑 كل الصلاحيات
+            </label>
+            ${state.permissionList.map((p) => `
+              <label style="display:flex;align-items:center;gap:6px;font-size:.85rem">
+                <input type="checkbox" value="${p.key}" />${escapeHtml(p.label)}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <button id="sSubmit" class="app-btn app-btn-primary">إضافة العضو</button>
+        <span id="sMsg" class="app-error-text" style="display:none;margin-inline-start:10px"></span>
+      </div>
+
+      <div class="app-card">
+        <div class="app-card-head"><h3>أعضاء فريقك</h3></div>
+        <div id="staffWrap"></div>
+      </div>
+    `;
+
+    content.querySelectorAll('#permChecks input[type=checkbox]').forEach((cb) => {
+      cb.addEventListener('change', () => togglePermission(cb.value));
+    });
+
+    content.querySelectorAll('.presetBtn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const preset = state.presets[Number(btn.dataset.i)];
+        selected.clear();
+        preset.permissions.forEach((p) => selected.add(p));
+        renderPermissionChecks();
+      });
+    });
+
+    document.getElementById('sSubmit').addEventListener('click', submitStaff);
+
+    renderStaffTable();
+  }
+
+  function renderStaffTable() {
+    const wrap = document.getElementById('staffWrap');
+    if (!state.staff.length) {
+      wrap.innerHTML = `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا يوجد أعضاء فريق بعد</h3><p>أضف أول عضو من الفورم أعلاه.</p></div>`;
+      return;
+    }
+    const labelMap = {};
+    state.permissionList.forEach((p) => { labelMap[p.key] = p.label; });
+
+    wrap.innerHTML = `
+      <table class="app-table">
+        <thead><tr><th>الاسم</th><th>معرّف تيليغرام</th><th>الصلاحيات</th><th></th></tr></thead>
+        <tbody>
+          ${state.staff.map((s) => `
+            <tr data-id="${s.telegramId}">
+              <td>${escapeHtml(s.name || '—')}</td>
+              <td class="num">${escapeHtml(s.telegramId)}</td>
+              <td>${(s.permissions || []).includes(state.allPermissionKey) ? 'كل الصلاحيات' : (s.permissions || []).map((p) => escapeHtml(labelMap[p] || p)).join('، ') || '—'}</td>
+              <td><button class="app-btn app-btn-ghost delBtn" style="padding:5px 10px;font-size:.78rem;color:var(--a-danger)">حذف</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    wrap.querySelectorAll('.delBtn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('حذف هذا العضو من فريقك؟')) return;
+        const row = btn.closest('tr');
+        btn.disabled = true;
+        try {
+          const r = await fetch(`/api/dashboard/staff/${row.dataset.id}`, { method: 'DELETE', credentials: 'same-origin' });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error);
+          load();
+        } catch (err) { alert(RB_APP.friendlyError(err, 'تعذّر الحذف')); btn.disabled = false; }
+      });
+    });
+  }
+
+  async function submitStaff() {
+    const msg = document.getElementById('sMsg');
+    msg.style.display = 'none';
+    const telegramId = document.getElementById('sTelegramId').value.trim();
+    const name = document.getElementById('sName').value.trim();
+    if (!telegramId) { msg.textContent = 'أدخل معرّف تيليغرام.'; msg.style.display = 'inline'; return; }
+    if (!selected.size) { msg.textContent = 'اختر صلاحية واحدة على الأقل.'; msg.style.display = 'inline'; return; }
+
+    const btn = document.getElementById('sSubmit');
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/dashboard/staff', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ telegramId, name, permissions: Array.from(selected) }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'تعذّر الإضافة');
+      selected.clear();
+      load();
+    } catch (err) {
+      msg.textContent = RB_APP.friendlyError(err); msg.style.display = 'inline';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>

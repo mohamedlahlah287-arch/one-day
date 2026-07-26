@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RedonBot — Log in</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=Cairo:wght@500;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-top">
+    <a href="/" class="brand">
+      <img src="/assets/img/logo.svg" class="brand-mark" alt="RedonBot" />
+      <span class="brand-name" data-i18n="brandName">RedonBot</span>
+    </a>
+    <button class="sidebar-close" id="sidebarClose" aria-label="إغلاق">✕</button>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/" data-i18n="navHome">الرئيسية</a>
+    <a href="/#why" data-i18n="navAbout">عن المنصة</a>
+    <a href="/#features" data-i18n="navFeatures">المميزات</a>
+    <a href="/pricing.html" data-i18n="navPricing">الأسعار</a>
+    <a href="/login.html" id="authNavLink" data-i18n="navLogin">تسجيل الدخول</a>
+  </nav>
+  <div class="sidebar-section">
+    <span class="sidebar-label" data-i18n="followUs">تابعنا</span>
+    <div class="social-links" id="socialLinks"></div>
+  </div>
+  <div class="sidebar-section sidebar-controls">
+    <button id="themeToggle" class="pill-btn">
+      <span id="themeIcon">🌙</span>
+      <span id="themeLabel" data-i18n="darkMode">الوضع الليلي</span>
+    </button>
+    <div class="lang-switch" id="langSwitch"></div>
+  </div>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="main">
+  <header class="topbar">
+    <button class="burger" id="burgerBtn" aria-label="القائمة">☰</button>
+  </header>
+
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h1 data-i18n="loginTitle">تسجيل الدخول</h1>
+      <p class="auth-sub" data-i18n="loginSub">سجّل دخولك بحساب Google لمتابعة متجرك.</p>
+
+      <div id="googleAuthArea">
+        <div class="auth-google-btn" id="gBtnLogin"></div>
+      </div>
+      <div id="googleDisabledNote" class="auth-disabled-note" style="display:none" data-i18n="googleDisabled">
+        تسجيل الدخول عبر Google غير مفعّل بعد من طرف الإدارة.
+      </div>
+
+      <div id="authErrorBox" class="auth-error" style="display:none"></div>
+
+      <p class="auth-switch"><span data-i18n="noAccount">ما عندكش حساب؟</span> <a href="/signup.html" data-i18n="goSignup">أنشئ حساب جديد</a></p>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>© <span id="year"></span> RedonBot — <span data-i18n="footerTag">منصة ذكاء اصطناعي للتجارة عبر المحادثات</span></p>
+  </footer>
+</div>
+
+<script>
+window.RB_EXTRA_I18N = {
+  ar: {
+    loginTitle: 'تسجيل الدخول', loginSub: 'سجّل الدخول بحساب Google لمتابعة متجرك.',
+    googleDisabled: 'تسجيل الدخول عبر Google غير مفعّل حاليًا من طرف الإدارة.',
+    noAccount: 'ليس لديك حساب؟', goSignup: 'أنشئ حساب جديد',
+    noAccountFound: 'لا يوجد حساب بهذا البريد الإلكتروني. أنشئ حساب جديد أولًا.',
+  },
+  en: {
+    loginTitle: 'Log in', loginSub: 'Sign in with Google to manage your store.',
+    googleDisabled: 'Google sign-in is not currently enabled by the admin.',
+    noAccount: "Don't have an account?", goSignup: 'Create a new account',
+    noAccountFound: 'No account with this email. Please create an account first.',
+  },
+  fr: {
+    loginTitle: 'Connexion', loginSub: 'Connectez-vous avec Google pour suivre votre boutique.',
+    googleDisabled: "La connexion Google n'est pas encore activée.",
+    noAccount: "Vous n'avez pas de compte ?", goSignup: 'Créer un compte',
+    noAccountFound: "Aucun compte avec cet e-mail. Créez un compte d'abord.",
+  },
+  es: {
+    loginTitle: 'Iniciar sesión', loginSub: 'Inicia sesión con Google para gestionar tu tienda.',
+    googleDisabled: 'El inicio de sesión con Google no está habilitado actualmente.',
+    noAccount: '¿No tienes cuenta?', goSignup: 'Crear una cuenta',
+    noAccountFound: 'No hay ninguna cuenta con este correo. Crea una cuenta primero.',
+  },
+  de: {
+    loginTitle: 'Anmelden', loginSub: 'Melden Sie sich mit Google an, um Ihren Shop zu verwalten.',
+    googleDisabled: 'Die Google-Anmeldung ist derzeit nicht aktiviert.',
+    noAccount: 'Noch kein Konto?', goSignup: 'Neues Konto erstellen',
+    noAccountFound: 'Kein Konto mit dieser E-Mail. Erstellen Sie zuerst ein Konto.',
+  },
+  it: {
+    loginTitle: 'Accedi', loginSub: 'Accedi con Google per gestire il tuo negozio.',
+    googleDisabled: "L'accesso con Google non è attualmente attivo.",
+    noAccount: 'Non hai un account?', goSignup: 'Crea un nuovo account',
+    noAccountFound: 'Nessun account con questa email. Crea prima un account.',
+  },
+  pt: {
+    loginTitle: 'Entrar', loginSub: 'Entre com o Google para gerenciar sua loja.',
+    googleDisabled: 'O login com Google não está ativado no momento.',
+    noAccount: 'Não tem uma conta?', goSignup: 'Criar uma conta',
+    noAccountFound: 'Nenhuma conta com este e-mail. Crie uma conta primeiro.',
+  },
+  tr: {
+    loginTitle: 'Giriş yap', loginSub: 'Mağazanızı yönetmek için Google ile giriş yapın.',
+    googleDisabled: 'Google ile giriş şu anda etkin değil.',
+    noAccount: 'Hesabınız yok mu?', goSignup: 'Yeni hesap oluştur',
+    noAccountFound: 'Bu e-postayla bir hesap bulunamadı. Önce bir hesap oluşturun.',
+  },
+  ru: {
+    loginTitle: 'Вход', loginSub: 'Войдите через Google, чтобы управлять магазином.',
+    googleDisabled: 'Вход через Google сейчас отключён администратором.',
+    noAccount: 'Нет аккаунта?', goSignup: 'Создать аккаунт',
+    noAccountFound: 'Аккаунт с этой почтой не найден. Сначала создайте аккаунт.',
+  },
+  zh: {
+    loginTitle: '登录', loginSub: '使用 Google 登录以管理您的店铺。',
+    googleDisabled: '管理员当前未启用 Google 登录。',
+    noAccount: '还没有账户?', goSignup: '创建新账户',
+    noAccountFound: '未找到该邮箱对应的账户,请先创建账户。',
+  },
+};
+</script>
+<script src="/assets/site-common.js"></script>
+<script src="/assets/auth-google.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  await window.rbInitGoogle({
+    buttonEl: 'gBtnLogin',
+    onCredential: async (credential) => {
+      const errBox = document.getElementById('authErrorBox');
+      errBox.style.display = 'none';
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ credential }),
+        });
+        const data = await res.json();
+        if (!res.ok) { errBox.textContent = data.error || window.rbT('noAccountFound'); errBox.style.display = 'block'; return; }
+        window.location.href = '/dashboard/overview.html';
+      } catch (e) {
+        errBox.textContent = window.rbT('genericError');
+        errBox.style.display = 'block';
+      }
+    },
+  });
+});
+</script>
+</body>
+</html>

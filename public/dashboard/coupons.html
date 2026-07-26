@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الكوبونات — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+(async function () {
+  const me = await RB_APP.initShell('coupons');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `
+    <div class="app-card">
+      <div class="app-card-head"><h3>إنشاء كوبون جديد</h3></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="app-field" style="margin-bottom:0"><label>الكود</label><input id="cCode" type="text" maxlength="20" placeholder="مثال: WELCOME10" /></div>
+        <div class="app-field" style="margin-bottom:0">
+          <label>النوع</label>
+          <select id="cType"><option value="percentage">نسبة مئوية %</option><option value="fixed">مبلغ ثابت</option></select>
+        </div>
+        <div class="app-field" style="margin-bottom:0"><label>القيمة</label><input id="cValue" type="number" min="1" /></div>
+      </div>
+      <button id="cSubmit" class="app-btn app-btn-primary">إنشاء الكوبون</button>
+      <span id="cMsg" class="app-error-text" style="display:none;margin-inline-start:10px"></span>
+    </div>
+
+    <div class="app-card">
+      <div class="app-card-head"><h3>كل الكوبونات</h3></div>
+      <div id="couponsWrap"><div class="app-skeleton">جاري التحميل...</div></div>
+    </div>
+  `;
+
+  async function loadCoupons() {
+    const wrap = document.getElementById('couponsWrap');
+    try {
+      const res = await fetch('/api/dashboard/coupons', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر جلب الكوبونات');
+
+      if (!data.coupons.length) {
+        wrap.innerHTML = `<div class="app-empty">${RB_APP.svg('empty')}<h3>لا توجد كوبونات بعد</h3><p>أنشئ أول كوبون من الفورم أعلاه.</p></div>`;
+        return;
+      }
+
+      wrap.innerHTML = `
+        <table class="app-table">
+          <thead><tr><th>الكود</th><th>النوع</th><th>القيمة</th><th>الحالة</th><th></th></tr></thead>
+          <tbody>
+            ${data.coupons.map((c) => `
+              <tr data-id="${c.id}">
+                <td>${escapeHtml(c.code)}</td>
+                <td>${c.type === 'percentage' ? 'نسبة %' : 'مبلغ ثابت'}</td>
+                <td class="num">${c.value}${c.type === 'percentage' ? '%' : ''}</td>
+                <td><span class="app-status-pill ${c.active ? 'ok' : 'neutral'}">${c.active ? 'فعّال' : 'موقوف'}</span></td>
+                <td style="white-space:nowrap">
+                  <button class="app-btn app-btn-ghost toggleBtn" style="padding:5px 10px;font-size:.78rem">${c.active ? 'إيقاف' : 'تفعيل'}</button>
+                  <button class="app-btn app-btn-ghost delBtn" style="padding:5px 10px;font-size:.78rem;color:var(--a-danger)">حذف</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      wrap.querySelectorAll('.toggleBtn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const row = btn.closest('tr');
+          const c = data.coupons.find((x) => x.id === row.dataset.id);
+          btn.disabled = true;
+          try {
+            const r = await fetch(`/api/dashboard/coupons/${row.dataset.id}`, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+              body: JSON.stringify({ active: !c.active }),
+            });
+            const d = await r.json();
+            if (!r.ok) throw new Error(d.error);
+            loadCoupons();
+          } catch (err) { alert(RB_APP.friendlyError(err, 'تعذّر التحديث')); btn.disabled = false; }
+        });
+      });
+
+      wrap.querySelectorAll('.delBtn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('حذف هذا الكوبون؟')) return;
+          const row = btn.closest('tr');
+          btn.disabled = true;
+          try {
+            const r = await fetch(`/api/dashboard/coupons/${row.dataset.id}`, { method: 'DELETE', credentials: 'same-origin' });
+            const d = await r.json();
+            if (!r.ok) throw new Error(d.error);
+            loadCoupons();
+          } catch (err) { alert(RB_APP.friendlyError(err, 'تعذّر الحذف')); btn.disabled = false; }
+        });
+      });
+    } catch (err) {
+      wrap.innerHTML = `<div class="app-error-text">${RB_APP.friendlyError(err)}</div>`;
+    }
+  }
+
+  document.getElementById('cSubmit').addEventListener('click', async () => {
+    const msg = document.getElementById('cMsg');
+    msg.style.display = 'none';
+    const code = document.getElementById('cCode').value.trim();
+    const type = document.getElementById('cType').value;
+    const value = document.getElementById('cValue').value;
+    if (!code || !value) { msg.textContent = 'أدخل الكود والقيمة.'; msg.style.display = 'inline'; return; }
+
+    const btn = document.getElementById('cSubmit');
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/dashboard/coupons', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ code, type, value }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'تعذّر الإنشاء');
+      document.getElementById('cCode').value = '';
+      document.getElementById('cValue').value = '';
+      loadCoupons();
+    } catch (err) {
+      msg.textContent = RB_APP.friendlyError(err); msg.style.display = 'inline';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  loadCoupons();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RedonBot — Sign up</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=Cairo:wght@500;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-top">
+    <a href="/" class="brand">
+      <img src="/assets/img/logo.svg" class="brand-mark" alt="RedonBot" />
+      <span class="brand-name" data-i18n="brandName">RedonBot</span>
+    </a>
+    <button class="sidebar-close" id="sidebarClose" aria-label="إغلاق">✕</button>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/" data-i18n="navHome">الرئيسية</a>
+    <a href="/#why" data-i18n="navAbout">عن المنصة</a>
+    <a href="/#features" data-i18n="navFeatures">المميزات</a>
+    <a href="/pricing.html" data-i18n="navPricing">الأسعار</a>
+    <a href="/login.html" id="authNavLink" data-i18n="navLogin">تسجيل الدخول</a>
+  </nav>
+  <div class="sidebar-section">
+    <span class="sidebar-label" data-i18n="followUs">تابعنا</span>
+    <div class="social-links" id="socialLinks"></div>
+  </div>
+  <div class="sidebar-section sidebar-controls">
+    <button id="themeToggle" class="pill-btn">
+      <span id="themeIcon">🌙</span>
+      <span id="themeLabel" data-i18n="darkMode">الوضع الليلي</span>
+    </button>
+    <div class="lang-switch" id="langSwitch"></div>
+  </div>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="main">
+  <header class="topbar">
+    <button class="burger" id="burgerBtn" aria-label="القائمة">☰</button>
+  </header>
+
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h1 data-i18n="signupTitle">إنشاء حساب جديد</h1>
+      <p class="auth-sub" data-i18n="signupSub">عبّي معلوماتك ثم أكمل بحساب Google.</p>
+
+      <form id="signupForm">
+        <div class="auth-field">
+          <label data-i18n="fullNameLabel">الاسم الكامل</label>
+          <input type="text" id="fullName" required placeholder="اسمك الكامل" data-i18n-ph="fullNameLabel">
+        </div>
+        <div class="auth-field">
+          <label data-i18n="phoneLabel">رقم الهاتف</label>
+          <input type="tel" id="phone" required placeholder="0555123456">
+        </div>
+        <div class="auth-field">
+          <label data-i18n="birthDateLabel">تاريخ الميلاد</label>
+          <input type="date" id="birthDate" required>
+        </div>
+      </form>
+
+      <div class="auth-divider" data-i18n="continueWith">أكمل بحساب Google</div>
+
+      <div id="googleAuthArea">
+        <div class="auth-google-btn" id="gBtnSignup"></div>
+      </div>
+      <div id="googleDisabledNote" class="auth-disabled-note" style="display:none" data-i18n="googleDisabled">
+        تسجيل الدخول عبر Google غير مفعّل بعد من طرف الإدارة.
+      </div>
+
+      <div id="authErrorBox" class="auth-error" style="display:none"></div>
+
+      <p class="auth-switch"><span data-i18n="haveAccount">عندك حساب بالفعل؟</span> <a href="/login.html" data-i18n="goLogin">سجّل الدخول</a></p>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>© <span id="year"></span> RedonBot — <span data-i18n="footerTag">منصة ذكاء اصطناعي للتجارة عبر المحادثات</span></p>
+  </footer>
+</div>
+
+<script>
+window.RB_EXTRA_I18N = {
+  ar: {
+    signupTitle: 'إنشاء حساب جديد', signupSub: 'أدخل معلوماتك ثم أكمل بحساب Google.',
+    fullNameLabel: 'الاسم الكامل', phoneLabel: 'رقم الهاتف', birthDateLabel: 'تاريخ الميلاد',
+    continueWith: 'أكمل بحساب Google',
+    googleDisabled: 'تسجيل الدخول عبر Google غير مفعّل حاليًا من طرف الإدارة.',
+    haveAccount: 'لديك حساب بالفعل؟', goLogin: 'سجّل الدخول',
+    fillFieldsFirst: 'أدخل الاسم الكامل والهاتف وتاريخ الميلاد أولًا، ثم اضغط زر Google.',
+    alreadyExists: 'هذا الحساب موجود بالفعل، تم تسجيل دخولك.',
+  },
+  en: {
+    signupTitle: 'Create a new account', signupSub: 'Fill in your details, then continue with Google.',
+    fullNameLabel: 'Full name', phoneLabel: 'Phone number', birthDateLabel: 'Date of birth',
+    continueWith: 'Continue with Google',
+    googleDisabled: 'Google sign-in is not currently enabled by the admin.',
+    haveAccount: 'Already have an account?', goLogin: 'Log in',
+    fillFieldsFirst: 'Fill in your full name, phone and date of birth first, then tap the Google button.',
+    alreadyExists: 'This account already exists — you have been logged in.',
+  },
+  fr: {
+    signupTitle: 'Créer un compte', signupSub: 'Remplissez vos infos puis continuez avec Google.',
+    fullNameLabel: 'Nom complet', phoneLabel: 'Téléphone', birthDateLabel: 'Date de naissance',
+    continueWith: 'Continuer avec Google',
+    googleDisabled: "La connexion Google n'est pas encore activée.",
+    haveAccount: 'Vous avez déjà un compte ?', goLogin: 'Se connecter',
+    fillFieldsFirst: "Remplissez le nom, le téléphone et la date de naissance d'abord.",
+    alreadyExists: 'Ce compte existe déjà, vous êtes connecté.',
+  },
+  es: {
+    signupTitle: 'Crear una cuenta', signupSub: 'Completa tus datos y continúa con Google.',
+    fullNameLabel: 'Nombre completo', phoneLabel: 'Teléfono', birthDateLabel: 'Fecha de nacimiento',
+    continueWith: 'Continuar con Google',
+    googleDisabled: 'El inicio de sesión con Google no está habilitado actualmente.',
+    haveAccount: '¿Ya tienes una cuenta?', goLogin: 'Iniciar sesión',
+    fillFieldsFirst: 'Completa nombre, teléfono y fecha de nacimiento antes de usar el botón de Google.',
+    alreadyExists: 'Esta cuenta ya existe, se ha iniciado sesión.',
+  },
+  de: {
+    signupTitle: 'Neues Konto erstellen', signupSub: 'Geben Sie Ihre Daten ein und fahren Sie mit Google fort.',
+    fullNameLabel: 'Vollständiger Name', phoneLabel: 'Telefonnummer', birthDateLabel: 'Geburtsdatum',
+    continueWith: 'Mit Google fortfahren',
+    googleDisabled: 'Die Google-Anmeldung ist derzeit nicht aktiviert.',
+    haveAccount: 'Haben Sie bereits ein Konto?', goLogin: 'Anmelden',
+    fillFieldsFirst: 'Geben Sie zuerst Namen, Telefon und Geburtsdatum ein, bevor Sie auf Google tippen.',
+    alreadyExists: 'Dieses Konto existiert bereits, Sie wurden angemeldet.',
+  },
+  it: {
+    signupTitle: 'Crea un nuovo account', signupSub: 'Inserisci i tuoi dati e continua con Google.',
+    fullNameLabel: 'Nome completo', phoneLabel: 'Telefono', birthDateLabel: 'Data di nascita',
+    continueWith: 'Continua con Google',
+    googleDisabled: "L'accesso con Google non è attualmente attivo.",
+    haveAccount: 'Hai già un account?', goLogin: 'Accedi',
+    fillFieldsFirst: 'Inserisci prima nome, telefono e data di nascita, poi premi il pulsante Google.',
+    alreadyExists: 'Questo account esiste già, hai effettuato l\'accesso.',
+  },
+  pt: {
+    signupTitle: 'Criar uma nova conta', signupSub: 'Preencha seus dados e continue com o Google.',
+    fullNameLabel: 'Nome completo', phoneLabel: 'Telefone', birthDateLabel: 'Data de nascimento',
+    continueWith: 'Continuar com o Google',
+    googleDisabled: 'O login com Google não está ativado no momento.',
+    haveAccount: 'Já tem uma conta?', goLogin: 'Entrar',
+    fillFieldsFirst: 'Preencha nome completo, telefone e data de nascimento antes de usar o botão do Google.',
+    alreadyExists: 'Esta conta já existe, você foi conectado.',
+  },
+  tr: {
+    signupTitle: 'Yeni hesap oluştur', signupSub: 'Bilgilerinizi girin ve Google ile devam edin.',
+    fullNameLabel: 'Ad soyad', phoneLabel: 'Telefon numarası', birthDateLabel: 'Doğum tarihi',
+    continueWith: 'Google ile devam et',
+    googleDisabled: 'Google ile giriş şu anda etkin değil.',
+    haveAccount: 'Zaten bir hesabınız var mı?', goLogin: 'Giriş yap',
+    fillFieldsFirst: 'Önce ad soyad, telefon ve doğum tarihini girin, ardından Google düğmesine dokunun.',
+    alreadyExists: 'Bu hesap zaten mevcut, giriş yapıldı.',
+  },
+  ru: {
+    signupTitle: 'Создать аккаунт', signupSub: 'Заполните данные и продолжите через Google.',
+    fullNameLabel: 'Полное имя', phoneLabel: 'Номер телефона', birthDateLabel: 'Дата рождения',
+    continueWith: 'Продолжить через Google',
+    googleDisabled: 'Вход через Google сейчас отключён администратором.',
+    haveAccount: 'Уже есть аккаунт?', goLogin: 'Войти',
+    fillFieldsFirst: 'Сначала укажите имя, телефон и дату рождения, затем нажмите кнопку Google.',
+    alreadyExists: 'Такой аккаунт уже существует, вы вошли в систему.',
+  },
+  zh: {
+    signupTitle: '创建新账户', signupSub: '填写您的信息,然后使用 Google 继续。',
+    fullNameLabel: '姓名', phoneLabel: '电话号码', birthDateLabel: '出生日期',
+    continueWith: '使用 Google 继续',
+    googleDisabled: '管理员当前未启用 Google 登录。',
+    haveAccount: '已经有账户了?', goLogin: '登录',
+    fillFieldsFirst: '请先填写姓名、电话和出生日期,然后点击 Google 按钮。',
+    alreadyExists: '该账户已存在,您已登录。',
+  },
+};
+</script>
+<script src="/assets/site-common.js"></script>
+<script src="/assets/auth-google.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  await window.rbInitGoogle({
+    buttonEl: 'gBtnSignup',
+    onCredential: async (credential) => {
+      const errBox = document.getElementById('authErrorBox');
+      errBox.style.display = 'none';
+      const fullName = document.getElementById('fullName').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const birthDate = document.getElementById('birthDate').value;
+      if (!fullName || !phone || !birthDate) {
+        errBox.textContent = window.rbT('fillFieldsFirst');
+        errBox.style.display = 'block';
+        return;
+      }
+      try {
+        const res = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ credential, fullName, phone, birthDate }),
+        });
+        const data = await res.json();
+        if (!res.ok) { errBox.textContent = data.error || window.rbT('genericError'); errBox.style.display = 'block'; return; }
+        window.location.href = '/dashboard/overview.html';
+      } catch (e) {
+        errBox.textContent = window.rbT('genericError');
+        errBox.style.display = 'block';
+      }
+    },
+  });
+});
+</script>
+</body>
+</html>

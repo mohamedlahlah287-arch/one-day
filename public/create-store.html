@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إنشاء متجر — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark">
+  <div class="app-center-page">
+    <div class="app-center-box">
+      <div style="display:flex;align-items:center;gap:9px;justify-content:center;margin-bottom:22px;font-weight:700">
+        <img src="/assets/img/logo.svg" style="width:26px;height:26px;border-radius:6px" alt="" />
+        <span>RedonBot</span>
+      </div>
+      <div class="app-card">
+        <h3 style="font-size:1.05rem;margin-bottom:6px">إنشاء متجرك</h3>
+        <p style="color:var(--a-muted);font-size:.85rem;margin:0 0 18px">
+          أدخل اسم متجرك وابدأ مباشرة — بلا حاجة لتيليغرام أو أي تطبيق آخر. تقدر تربط تيليغرام لاحقًا (اختياري) من الإعدادات.
+        </p>
+        <div class="app-field">
+          <label for="storeNameInput">اسم المتجر</label>
+          <input id="storeNameInput" type="text" placeholder="مثال: متجر ريم للعطور" maxlength="80" />
+        </div>
+        <div class="app-field">
+          <label for="storePhoneInput">رقم الهاتف / واتساب (اختياري)</label>
+          <input id="storePhoneInput" type="tel" placeholder="05xxxxxxxx" />
+        </div>
+        <div class="app-field">
+          <label for="referralCodeInput">كود الدعوة (اختياري)</label>
+          <input id="referralCodeInput" type="text" placeholder="إذا دعاك تاجر آخر، اكتب كوده هنا" />
+        </div>
+        <button id="createStoreSubmit" class="app-btn app-btn-primary" style="width:100%">إنشاء المتجر والمتابعة</button>
+        <div id="createStoreMsg" class="app-error-text" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+(async function () {
+  const me = await RB_APP.checkAuth({ allowNoStore: true });
+  if (!me) return; // إعادة توجيه جارية (لا حساب / عنده متجر بالفعل)
+
+  const btn = document.getElementById('createStoreSubmit');
+  const msgBox = document.getElementById('createStoreMsg');
+
+  // إذا وصل التاجر عبر رابط دعوة (مثال: /create-store.html?ref=ABC1234) نعبّي الكود مسبقًا
+  const refFromQuery = new URLSearchParams(location.search).get('ref');
+  if (refFromQuery) document.getElementById('referralCodeInput').value = refFromQuery;
+
+  btn.addEventListener('click', async () => {
+    const storeName = document.getElementById('storeNameInput').value.trim();
+    const contactPhone = document.getElementById('storePhoneInput').value.trim();
+    const referralCode = document.getElementById('referralCodeInput').value.trim();
+    msgBox.style.display = 'none';
+
+    if (storeName.length < 2) {
+      msgBox.textContent = 'اسم المتجر قصير جدًا.';
+      msgBox.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'جاري الإنشاء...';
+    try {
+      const res = await fetch('/api/auth/store/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ storeName, contactPhone, referralCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'تعذّر إنشاء المتجر');
+      window.location.href = '/dashboard/overview.html';
+    } catch (err) {
+      msgBox.textContent = err.message || 'حدث خطأ، حاول مرة أخرى.';
+      msgBox.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'إنشاء المتجر والمتابعة';
+    }
+  });
+})();
+</script>
+</body>
+</html>

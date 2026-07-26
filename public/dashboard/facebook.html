@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ربط Facebook Messenger — لوحة التحكم — RedonBot</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard-app.css">
+</head>
+<body>
+<div id="appRoot" class="app" data-app-theme="dark"></div>
+
+<script src="/assets/dashboard-app.js"></script>
+<script>
+function fmtDate(v) {
+  if (!v) return '—';
+  try {
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('ar', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch (e) { return '—'; }
+}
+
+(async function () {
+  const me = await RB_APP.initShell('facebook');
+  if (!me) return;
+
+  const content = document.getElementById('appPageContent');
+  content.innerHTML = `<div class="app-skeleton">جاري التحميل...</div>`;
+
+  async function loadState() {
+    const res = await fetch('/api/dashboard/store-settings', { credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'تعذّر جلب حالة الربط');
+    return data;
+  }
+
+  function renderConnected(s) {
+    content.innerHTML = `
+      <div class="app-card app-connect-card">
+        <div class="app-card-head"><h3>ربط Facebook Messenger</h3></div>
+        <div class="app-connect-row">
+          <div class="app-connect-meta">
+            <span class="name">${s.facebookPageName ? escapeHtml(s.facebookPageName) : 'صفحة مربوطة'}</span>
+            <span class="sub">معرف الصفحة: ${escapeHtml(s.facebookPageId || '—')}</span>
+            <span class="sub">تاريخ الربط: ${fmtDate(s.facebookConnectedAt)}</span>
+          </div>
+          <span class="app-status-pill ok">متصل</span>
+        </div>
+        <p style="color:var(--a-muted);font-size:.85rem;margin:14px 0 0">
+          بوتك يرد تلقائيًا على رسائل عملائك عبر هذه الصفحة على Messenger.
+        </p>
+        <div class="app-connect-actions">
+          <button id="changePageBtn" class="app-btn app-btn-ghost">تغيير الصفحة</button>
+          <button id="deleteLinkBtn" class="app-btn app-btn-danger">حذف الربط</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('changePageBtn').addEventListener('click', async () => {
+      const confirmed = await RB_APP.confirmDialog({
+        title: 'تغيير صفحة Facebook',
+        body: `
+          <p style="margin:0">سيتم فصل الصفحة الحالية وربط صفحة جديدة.</p>
+          <div class="app-modal-warning">
+            ${RB_APP.svg('warning')}
+            <span>إذا كانت صفحة Instagram مرتبطة بهذه الصفحة، فقد تتوقف رسائل Instagram حتى يتم ربط الصفحة الجديدة.</span>
+          </div>
+          <p style="margin:12px 0 0">هل تريد المتابعة؟</p>
+        `,
+        confirmLabel: 'متابعة',
+        cancelLabel: 'إلغاء',
+      });
+      if (!confirmed) return;
+      await startConnect();
+    });
+
+    document.getElementById('deleteLinkBtn').addEventListener('click', async () => {
+      const confirmed = await RB_APP.confirmDialog({
+        title: 'حذف ربط Facebook',
+        body: `
+          <p style="margin:0">سيتوقف البوت عن الرد على رسائل هذه الصفحة فورًا.</p>
+          <div class="app-modal-warning">
+            ${RB_APP.svg('warning')}
+            <span>إذا كانت Instagram تعتمد على هذه الصفحة، فسيتم تعطيل رسائل Instagram أيضًا.</span>
+          </div>
+        `,
+        confirmLabel: 'حذف الربط',
+        cancelLabel: 'إلغاء',
+        danger: true,
+      });
+      if (!confirmed) return;
+
+      const btn = document.getElementById('deleteLinkBtn');
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/dashboard/facebook/disconnect', { method: 'POST', credentials: 'same-origin' });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'تعذّر حذف الربط');
+        RB_APP.toast('تم حذف ربط الصفحة بنجاح.', { type: 'success' });
+        await refresh();
+      } catch (err) {
+        RB_APP.toast(RB_APP.friendlyError(err, 'تعذّر حذف الربط، حاول مرة أخرى.'), { type: 'error' });
+        btn.disabled = false;
+      }
+    });
+  }
+
+  function renderDisconnected() {
+    content.innerHTML = `
+      <div class="app-card app-connect-card">
+        <div class="app-card-head"><h3>ربط Facebook Messenger</h3></div>
+        <div class="app-connect-row">
+          <div class="app-connect-meta">
+            <span class="name">لا توجد صفحة مربوطة</span>
+            <span class="sub">اربط صفحة Facebook الخاصة بمتجرك بضغطة واحدة ليرد البوت تلقائيًا على عملائك هناك.</span>
+          </div>
+          <span class="app-status-pill neutral">غير متصل</span>
+        </div>
+        <div class="app-connect-actions">
+          <button id="connectBtn" class="app-btn app-btn-primary">${RB_APP.svg('facebook')} ربط صفحة Facebook</button>
+        </div>
+        <div id="connectMsg" class="app-error-text" style="display:none;margin-top:10px"></div>
+      </div>
+    `;
+    document.getElementById('connectBtn').addEventListener('click', startConnect);
+  }
+
+  async function startConnect() {
+    const btn = document.getElementById('connectBtn') || document.getElementById('changePageBtn');
+    const msg = document.getElementById('connectMsg');
+    if (btn) btn.disabled = true;
+    try {
+      const r = await fetch('/api/dashboard/facebook/connect', { method: 'POST', credentials: 'same-origin' });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'تعذّر بدء عملية الربط');
+      window.location.href = d.connectUrl;
+    } catch (err) {
+      const friendly = RB_APP.friendlyError(err, 'تعذّر بدء عملية الربط، حاول مرة أخرى.');
+      if (msg) { msg.textContent = friendly; msg.style.display = 'block'; }
+      else RB_APP.toast(friendly, { type: 'error' });
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  async function refresh() {
+    try {
+      const s = await loadState();
+      if (s.facebookConnected) renderConnected(s);
+      else renderDisconnected();
+    } catch (err) {
+      content.innerHTML = `<div class="app-error-text">${RB_APP.friendlyError(err, 'تعذّر جلب حالة الربط، حاول مرة أخرى.')}</div>`;
+    }
+  }
+
+  await refresh();
+})();
+</script>
+</body>
+</html>

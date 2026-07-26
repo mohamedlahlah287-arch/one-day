@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RedonBot — AI Chat Commerce Platform</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg" />
+<meta name="description" content="RedonBot: an AI platform that replies to your customers and sells for you on Messenger, Instagram and WhatsApp — in 10+ languages.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=Cairo:wght@500;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<!-- ===== الشريط الجانبي ===== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-top">
+    <a href="/" class="brand">
+      <img src="/assets/img/logo.svg" class="brand-mark" alt="RedonBot" />
+      <span class="brand-name" data-i18n="brandName">RedonBot</span>
+    </a>
+    <button class="sidebar-close" id="sidebarClose" aria-label="إغلاق">✕</button>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a href="/" data-i18n="navHome">الرئيسية</a>
+    <a href="/#why" data-i18n="navAbout">عن المنصة</a>
+    <a href="/#features" data-i18n="navFeatures">المميزات</a>
+    <a href="/pricing.html" data-i18n="navPricing">الأسعار</a>
+    <a href="/login.html" id="authNavLink" data-i18n="navLogin">تسجيل الدخول</a>
+  </nav>
+
+  <div class="sidebar-section">
+    <span class="sidebar-label" data-i18n="followUs">تابعنا</span>
+    <div class="social-links" id="socialLinks"></div>
+  </div>
+
+  <div class="sidebar-section sidebar-controls">
+    <button id="themeToggle" class="pill-btn">
+      <span id="themeIcon">🌙</span>
+      <span id="themeLabel" data-i18n="darkMode">الوضع الليلي</span>
+    </button>
+    <div class="lang-switch" id="langSwitch"></div>
+  </div>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ===== المحتوى ===== -->
+<div class="main">
+  <header class="topbar">
+    <button class="burger" id="burgerBtn" aria-label="القائمة">☰</button>
+    <a href="/signup.html" class="cta-small" data-i18n="ctaSubscribe">اشترك الآن</a>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <p class="eyebrow" data-i18n="eyebrow">منصة ذكاء اصطناعي للتجارة عبر المحادثات</p>
+    <h1 data-i18n="heroTitle">مساعد ذكي يرد على زبائنك ويبيع نيابةً عنك، على مدار الساعة</h1>
+    <p class="hero-sub" data-i18n="heroSub">
+      يربط RedonBot متجرك بفيسبوك ماسنجر، إنستغرام وواتساب، ويستعمل الذكاء الاصطناعي للرد على الرسائل
+      النصية والصوتية والصور، وعرض منتجاتك، وتسجيل الطلبات، واسترجاع السلات المتروكة — تلقائيًا وعلى مدار الساعة.
+    </p>
+    <div class="hero-actions">
+      <a href="/signup.html" class="btn btn-primary" data-i18n="heroCtaSignup">سجّل مجانًا الآن</a>
+      <a href="/pricing.html" class="btn btn-ghost" data-i18n="seePlans">عرض الباقات</a>
+      <a href="#how" class="btn btn-ghost" data-i18n="learnMore">شاهد كيف يعمل</a>
+    </div>
+    <div class="hero-stats">
+      <div><strong>24/7</strong><span data-i18n="statAlways">رد تلقائي دائم</span></div>
+      <div><strong>10+</strong><span data-i18n="statPlans">لغات مدعومة</span></div>
+      <div><strong>AI</strong><span data-i18n="statDzd">مدعوم بالذكاء الاصطناعي</span></div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="features" id="how">
+    <h2 data-i18n="howTitle">كيف يعمل RedonBot؟</h2>
+    <p class="hero-sub" data-i18n="howSub">أربع خطوات بسيطة، والباقي يتكفل به المساعد الذكي.</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="feature-icon">1</span>
+        <h3 data-i18n="step1Title">اربط متجرك</h3>
+        <p data-i18n="step1Desc">اربط صفحتك على فيسبوك ماسنجر، إنستغرام أو واتساب في دقائق، بلا حاجة لأي خبرة تقنية.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">2</span>
+        <h3 data-i18n="step2Title">أضف منتجاتك</h3>
+        <p data-i18n="step2Desc">أضف منتجاتك بالصور والأسعار من لوحة التحكم، أو دع الذكاء الاصطناعي يتعلّمها من محادثاتك.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">3</span>
+        <h3 data-i18n="step3Title">الذكاء الاصطناعي يرد ويبيع</h3>
+        <p data-i18n="step3Desc">يرد المساعد على زبائنك فورًا نصًا أو صوتًا أو صورة، يعرض المنتجات، ويسجّل الطلب مباشرة.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">4</span>
+        <h3 data-i18n="step4Title">تابع كل شيء من لوحة التحكم</h3>
+        <p data-i18n="step4Desc">الطلبات والعملاء والمبيعات، كلها تصلك منظمة في لوحة تحكم واحدة بلا تشتت.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY REDONBOT -->
+  <section class="about" id="why">
+    <h2 data-i18n="whyTitle">يوفّر وقتك، ولا يفوّت زبون</h2>
+    <p data-i18n="whyIntro">
+      بدل الرد يدويًا على عشرات الرسائل كل يوم، يتولى RedonBot الرد الفوري نيابةً عنك على مدار الساعة —
+      فيربح فريقك وقتًا وأنت ما تخسر ولا زبون.
+    </p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <h3 data-i18n="pain1Title">سرعة رد أعلى بـ80%</h3>
+        <p data-i18n="pain1Desc">تأخّر بسيط من فريقك، حتى 15 دقيقة، كافٍ ليذهب الزبون عند منافس يرد أسرع.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🌙</span>
+        <h3 data-i18n="pain2Title">بلا تكلفة التغطية الليلية</h3>
+        <p data-i18n="pain2Desc">توفير موظف للرد ليلًا مكلف ومرهق، بينما وكيل RedonBot يرد على مدار الساعة بلا انقطاع.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🔄</span>
+        <h3 data-i18n="pain3Title">أقل روتين لفريقك</h3>
+        <p data-i18n="pain3Desc">جزء كبير من وقت الموظفين يروح فـ الرد على نفس الأسئلة المتكررة، ما يزيد الإرهاق ومعدل ترك العمل.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES (نظرة سريعة فقط - بقية الخيارات والإعدادات التفصيلية داخل لوحة التحكم بعد التسجيل) -->
+  <section class="features" id="features">
+    <h2 data-i18n="featuresTitle">أهم المميزات</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="feature-icon">💬</span>
+        <h3 data-i18n="f1Title">رد تلقائي ذكي</h3>
+        <p data-i18n="f1Desc">يفهم أسئلة الزبائن ويجاوب عليها بطبيعية، نصًا أو صوتًا أو حتى من صورة منتج.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🛒</span>
+        <h3 data-i18n="f2Title">إدارة طلبات كاملة</h3>
+        <p data-i18n="f2Desc">كل طلب يوصلك مباشرة بدون تشتت بين عدة تطبيقات.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🔁</span>
+        <h3 data-i18n="f3Title">استرجاع السلات المتروكة</h3>
+        <p data-i18n="f3Desc">يذكّر الزبون تلقائيًا إذا ترك طلبه بدون إتمام، ويحول المزيد من الزيارات إلى مبيعات.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">📊</span>
+        <h3 data-i18n="f5Title">تحليلات وتقارير</h3>
+        <p data-i18n="f5Desc">تابع أداء متجرك: عدد الرسائل، الطلبات، ومعدل تحويل الزوار إلى زبائن.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BAND -->
+  <section class="hero" id="cta-band" style="padding:44px 0;border-top:1px solid var(--border);text-align:center">
+    <h2 style="max-width:none" data-i18n="ctaBandTitle">جاهز توفّر وقتك وتبيع أكثر؟</h2>
+    <p class="hero-sub" style="max-width:none;margin:10px auto 24px" data-i18n="ctaBandSub">إنشاء الحساب مجاني، وما يتطلب أي بطاقة دفع.</p>
+    <div class="hero-actions" style="justify-content:center;margin:0">
+      <a href="/signup.html" class="btn btn-primary" data-i18n="heroCtaSignup">سجّل مجانًا الآن</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>© <span id="year"></span> RedonBot — <span data-i18n="footerTag">منصة ذكاء اصطناعي للتجارة عبر المحادثات</span></p>
+  </footer>
+</div>
+
+<script>
+window.RB_EXTRA_I18N = {
+  ar: {
+    eyebrow: 'منصة ذكاء اصطناعي للتجارة عبر المحادثات',
+    heroTitle: 'مساعد ذكي يرد على زبائنك ويبيع نيابةً عنك، على مدار الساعة',
+    heroSub: 'يربط RedonBot متجرك بفيسبوك ماسنجر، إنستغرام وواتساب، ويستعمل الذكاء الاصطناعي للرد على الرسائل النصية والصوتية والصور، وعرض منتجاتك، وتسجيل الطلبات، واسترجاع السلات المتروكة — تلقائيًا وعلى مدار الساعة.',
+    seePlans: 'عرض الباقات', learnMore: 'شاهد كيف يعمل', heroCtaSignup: 'سجّل مجانًا الآن',
+    statAlways: 'رد تلقائي دائم', statPlans: 'لغات مدعومة', statDzd: 'مدعوم بالذكاء الاصطناعي',
+    howTitle: 'كيف يعمل RedonBot؟', howSub: 'أربع خطوات بسيطة، والباقي يتكفل به المساعد الذكي.',
+    step1Title: 'اربط متجرك', step1Desc: 'اربط صفحتك على فيسبوك ماسنجر، إنستغرام أو واتساب في دقائق، بلا حاجة لأي خبرة تقنية.',
+    step2Title: 'أضف منتجاتك', step2Desc: 'أضف منتجاتك بالصور والأسعار من لوحة التحكم، أو دع الذكاء الاصطناعي يتعلّمها من محادثاتك.',
+    step3Title: 'الذكاء الاصطناعي يرد ويبيع', step3Desc: 'يرد المساعد على زبائنك فورًا نصًا أو صوتًا أو صورة، يعرض المنتجات، ويسجّل الطلب مباشرة.',
+    step4Title: 'تابع كل شيء من لوحة التحكم', step4Desc: 'الطلبات والعملاء والمبيعات، كلها تصلك منظمة في لوحة تحكم واحدة بلا تشتت.',
+    whyTitle: 'يوفّر وقتك، ولا يفوّت زبون',
+    whyIntro: 'بدل الرد يدويًا على عشرات الرسائل كل يوم، يتولى RedonBot الرد الفوري نيابةً عنك على مدار الساعة — فيربح فريقك وقتًا وأنت ما تخسر ولا زبون.',
+    featuresTitle: 'أهم المميزات',
+    f1Title: 'رد تلقائي ذكي', f1Desc: 'يفهم أسئلة الزبائن ويجيب عليها بطبيعية، نصًا أو صوتًا أو حتى من صورة منتج.',
+    f2Title: 'إدارة طلبات كاملة', f2Desc: 'كل طلب يصلك مباشرة بدون تشتت بين عدة تطبيقات.',
+    f3Title: 'استرجاع السلات المتروكة', f3Desc: 'يذكّر الزبون تلقائيًا إذا ترك طلبه دون إتمام، ويحوّل المزيد من الزيارات إلى مبيعات.',
+    f5Title: 'تحليلات وتقارير', f5Desc: 'تابع أداء متجرك: عدد الرسائل، الطلبات، ومعدل تحويل الزوار إلى زبائن.',
+    pain1Title: 'سرعة رد أعلى بـ80%', pain1Desc: 'تأخّر بسيط من فريقك، حتى 15 دقيقة، كافٍ ليذهب الزبون عند منافس يرد أسرع.',
+    pain2Title: 'بلا تكلفة التغطية الليلية', pain2Desc: 'توفير موظف للرد ليلًا مكلف ومرهق، بينما وكيل RedonBot يرد على مدار الساعة بلا انقطاع.',
+    pain3Title: 'أقل روتين لفريقك', pain3Desc: 'جزء كبير من وقت الموظفين يروح فـ الرد على نفس الأسئلة المتكررة، ما يزيد الإرهاق ومعدل ترك العمل.',
+    ctaBandTitle: 'جاهز توفّر وقتك وتبيع أكثر؟', ctaBandSub: 'إنشاء الحساب مجاني، وما يتطلب أي بطاقة دفع.',
+  },
+  en: {
+    eyebrow: 'The AI platform for conversational commerce',
+    heroTitle: 'A smart assistant that replies to your customers and sells for you, 24/7',
+    heroSub: 'RedonBot connects your store to Facebook Messenger, Instagram and WhatsApp, and uses AI to reply to text, voice and image messages, showcase your products, log orders, and recover abandoned carts — automatically, around the clock.',
+    seePlans: 'See plans', learnMore: 'See how it works', heroCtaSignup: 'Sign up free',
+    statAlways: 'Always-on replies', statPlans: 'Languages supported', statDzd: 'Powered by AI',
+    howTitle: 'How does RedonBot work?', howSub: 'Four simple steps — the AI agent handles the rest.',
+    step1Title: 'Connect your store', step1Desc: 'Link your Facebook Messenger, Instagram or WhatsApp page in minutes, no technical skills needed.',
+    step2Title: 'Add your products', step2Desc: 'Add products with photos and prices from your dashboard, or let the AI learn them from past conversations.',
+    step3Title: 'AI replies and sells', step3Desc: 'The assistant replies to customers instantly by text, voice or photo, showcases products, and logs the order.',
+    step4Title: 'Track everything from your dashboard', step4Desc: 'Orders, customers and sales all land in one organized dashboard — no more juggling apps.',
+    whyTitle: 'Saves you time, never misses a customer',
+    whyIntro: 'Instead of manually answering dozens of messages a day, RedonBot replies instantly on your behalf, around the clock — your team saves time, and you never lose a customer.',
+    featuresTitle: 'Key features',
+    f1Title: 'Smart auto-reply', f1Desc: 'Understands customer questions and answers naturally — by text, voice, or even from a product photo.',
+    f2Title: 'Full order management', f2Desc: 'Every order reaches you directly, with no juggling between multiple apps.',
+    f3Title: 'Abandoned cart recovery', f3Desc: 'Automatically reminds customers who leave an order unfinished, turning more visits into sales.',
+    f5Title: 'Analytics & reports', f5Desc: 'Track your store performance: messages, orders, and visitor-to-customer conversion.',
+    pain1Title: '80% faster replies', pain1Desc: 'Just a 15-minute delay from your team is enough for a customer to move to a faster-responding competitor.',
+    pain2Title: 'No night-shift costs', pain2Desc: 'Staffing overnight replies is costly and exhausting — the RedonBot agent replies around the clock without a break.',
+    pain3Title: 'Less repetitive work', pain3Desc: 'Staff spend a large share of their time answering the same recurring questions, driving burnout and turnover.',
+    ctaBandTitle: 'Ready to save time and sell more?', ctaBandSub: 'Creating an account is free — no card required.',
+  },
+  fr: {
+    eyebrow: "La plateforme IA du commerce conversationnel",
+    heroTitle: 'Un assistant intelligent qui répond à vos clients et vend pour vous, 24h/24',
+    heroSub: "RedonBot connecte votre boutique à Facebook Messenger, Instagram et WhatsApp, et utilise l'IA pour répondre aux messages texte, vocaux et images, présenter vos produits, enregistrer les commandes et relancer les paniers abandonnés — automatiquement, en continu.",
+    seePlans: 'Voir les tarifs', learnMore: 'Voir comment ça marche', heroCtaSignup: 'Inscription gratuite',
+    statAlways: 'Réponse automatique 24/7', statPlans: 'Langues disponibles', statDzd: "Propulsé par l'IA",
+    howTitle: 'Comment fonctionne RedonBot ?', howSub: "Quatre étapes simples — l'IA s'occupe du reste.",
+    step1Title: 'Connectez votre boutique', step1Desc: 'Reliez votre page Facebook Messenger, Instagram ou WhatsApp en quelques minutes, sans compétence technique.',
+    step2Title: 'Ajoutez vos produits', step2Desc: "Ajoutez vos produits avec photos et prix depuis votre tableau de bord, ou laissez l'IA les apprendre de vos conversations.",
+    step3Title: "L'IA répond et vend", step3Desc: "L'assistant répond instantanément par texte, voix ou photo, présente vos produits et enregistre la commande.",
+    step4Title: 'Suivez tout depuis votre tableau de bord', step4Desc: 'Commandes, clients et ventes arrivent organisés dans un seul tableau de bord.',
+    whyTitle: 'Vous fait gagner du temps, sans jamais manquer un client',
+    whyIntro: "Au lieu de répondre manuellement à des dizaines de messages par jour, RedonBot répond instantanément à votre place, 24h/24 — votre équipe gagne du temps, et vous ne perdez aucun client.",
+    featuresTitle: 'Fonctionnalités principales',
+    f1Title: 'Réponse intelligente automatique', f1Desc: "Comprend les questions des clients et y répond naturellement, en texte, vocal ou à partir d'une photo produit.",
+    f2Title: 'Gestion complète des commandes', f2Desc: 'Chaque commande arrive directement, sans jongler entre plusieurs applications.',
+    f3Title: 'Relance des paniers abandonnés', f3Desc: 'Relance automatiquement le client qui a laissé sa commande inachevée.',
+    f5Title: 'Statistiques et rapports', f5Desc: 'Suivez la performance de votre boutique : messages, commandes, taux de conversion.',
+    pain1Title: '80 % de réponses plus rapides', pain1Desc: "Un simple retard de 15 minutes suffit pour qu'un client se tourne vers un concurrent plus réactif.",
+    pain2Title: 'Sans coût de garde de nuit', pain2Desc: "Assurer des réponses la nuit coûte cher et épuise l'équipe — l'agent RedonBot répond en continu, sans pause.",
+    pain3Title: 'Moins de tâches répétitives', pain3Desc: "Une grande partie du temps de l'équipe part à répondre aux mêmes questions, ce qui use le personnel.",
+    ctaBandTitle: 'Prêt à gagner du temps et vendre plus ?', ctaBandSub: 'La création de compte est gratuite, sans carte requise.',
+  },
+  es: {
+    eyebrow: 'La plataforma de IA para el comercio conversacional',
+    heroTitle: 'Un asistente inteligente que responde a tus clientes y vende por ti, 24/7',
+    heroSub: 'RedonBot conecta tu tienda con Facebook Messenger, Instagram y WhatsApp, y usa IA para responder mensajes de texto, voz e imágenes, mostrar tus productos, registrar pedidos y recuperar carritos abandonados, todo automáticamente.',
+    seePlans: 'Ver planes', learnMore: 'Ver cómo funciona', heroCtaSignup: 'Regístrate gratis',
+    statAlways: 'Respuesta automática 24/7', statPlans: 'Idiomas disponibles', statDzd: 'Impulsado por IA',
+    howTitle: '¿Cómo funciona RedonBot?', howSub: 'Cuatro pasos simples — la IA se encarga del resto.',
+    step1Title: 'Conecta tu tienda', step1Desc: 'Vincula tu página de Facebook Messenger, Instagram o WhatsApp en minutos, sin conocimientos técnicos.',
+    step2Title: 'Añade tus productos', step2Desc: 'Añade productos con fotos y precios desde tu panel, o deja que la IA los aprenda de tus conversaciones.',
+    step3Title: 'La IA responde y vende', step3Desc: 'El asistente responde al instante por texto, voz o foto, muestra tus productos y registra el pedido.',
+    step4Title: 'Sigue todo desde tu panel', step4Desc: 'Pedidos, clientes y ventas llegan organizados a un solo panel, sin saltar entre apps.',
+    whyTitle: 'Te ahorra tiempo y nunca pierde un cliente',
+    whyIntro: 'En lugar de responder manualmente decenas de mensajes al día, RedonBot responde al instante por ti, las 24 horas — tu equipo ahorra tiempo y no pierdes ningún cliente.',
+    featuresTitle: 'Funciones principales',
+    f1Title: 'Respuesta automática inteligente', f1Desc: 'Entiende las preguntas de los clientes y responde con naturalidad, en texto, voz o desde una foto de producto.',
+    f2Title: 'Gestión completa de pedidos', f2Desc: 'Cada pedido te llega directamente, sin saltar entre varias aplicaciones.',
+    f3Title: 'Recuperación de carritos abandonados', f3Desc: 'Recuerda automáticamente al cliente que dejó un pedido sin terminar.',
+    f5Title: 'Estadísticas e informes', f5Desc: 'Sigue el rendimiento de tu tienda: mensajes, pedidos y tasa de conversión.',
+    pain1Title: '80% de respuestas más rápidas', pain1Desc: 'Un simple retraso de 15 minutos basta para que un cliente se vaya con un competidor más rápido.',
+    pain2Title: 'Sin coste de turno nocturno', pain2Desc: 'Cubrir respuestas de noche es costoso y agotador — el agente RedonBot responde sin parar, las 24 horas.',
+    pain3Title: 'Menos trabajo repetitivo', pain3Desc: 'Gran parte del tiempo del equipo se va en responder las mismas preguntas, lo que aumenta el desgaste.',
+    ctaBandTitle: '¿Listo para ahorrar tiempo y vender más?', ctaBandSub: 'Crear una cuenta es gratis, sin tarjeta requerida.',
+  },
+  de: {
+    eyebrow: 'Die KI-Plattform für konversationellen Handel',
+    heroTitle: 'Ein smarter Assistent, der Ihre Kunden beantwortet und rund um die Uhr für Sie verkauft',
+    heroSub: 'RedonBot verbindet Ihren Shop mit Facebook Messenger, Instagram und WhatsApp und nutzt KI, um Text-, Sprach- und Bildnachrichten zu beantworten, Produkte zu präsentieren, Bestellungen zu erfassen und abgebrochene Warenkörbe automatisch zurückzuholen.',
+    seePlans: 'Preise ansehen', learnMore: 'Mehr erfahren',
+    statAlways: 'Rund um die Uhr aktiv', statPlans: 'Unterstützte Sprachen', statDzd: 'KI-gestützt',
+    aboutTitle: 'Was ist RedonBot?',
+    aboutP1: 'RedonBot ist eine KI-Plattform für Händler, die über Messaging-Apps verkaufen. Statt täglich Dutzende Nachrichten manuell zu beantworten, übernimmt der Assistent die sofortige Antwort, versteht Sprache und Bilder, stellt Ihre Produkte im Detail vor und erfasst Bestellungen direkt in Ihrem Dashboard.',
+    aboutP2: 'Das Ziel ist einfach: Zeit und Aufwand sparen, keine Kundennachricht verpassen und den Umsatz mit Funktionen wie der Rückgewinnung abgebrochener Warenkörbe und Leistungsanalysen steigern. Verfügbar in über 10 Sprachen.',
+    featuresTitle: 'Wichtigste Funktionen',
+    f1Title: 'Intelligente Auto-Antwort', f1Desc: 'Versteht Kundenfragen und beantwortet sie natürlich, per Text, Sprache oder sogar anhand eines Produktfotos.',
+    f2Title: 'Vollständige Bestellverwaltung', f2Desc: 'Jede Bestellung erreicht Sie direkt, ohne zwischen mehreren Apps zu wechseln.',
+    f3Title: 'Rückgewinnung abgebrochener Warenkörbe', f3Desc: 'Erinnert Kunden automatisch, wenn sie eine Bestellung nicht abgeschlossen haben.',
+    f4Title: 'Team mit Berechtigungen', f4Desc: 'Fügen Sie Mitarbeiter mit klar definierten Rechten hinzu.',
+    f5Title: 'Analysen und Berichte', f5Desc: 'Verfolgen Sie Nachrichten, Bestellungen und Conversion-Rate Ihres Shops.',
+    f6Title: 'Sofortige Online-Zahlung', f6Desc: 'Aktivieren Sie Ihr Abo direkt auf der Website, ohne Wartezeit oder manuelle Überweisung.',
+  },
+  it: {
+    eyebrow: 'La piattaforma IA per il commercio conversazionale',
+    heroTitle: 'Un assistente intelligente che risponde ai tuoi clienti e vende per te, 24 ore su 24',
+    heroSub: "RedonBot collega il tuo negozio a Facebook Messenger, Instagram e WhatsApp e usa l'IA per rispondere a messaggi testuali, vocali e immagini, presentare i tuoi prodotti, registrare gli ordini e recuperare i carrelli abbandonati, tutto in automatico.",
+    seePlans: 'Vedi i piani', learnMore: 'Scopri di più',
+    statAlways: 'Risposta automatica 24/7', statPlans: 'Lingue supportate', statDzd: "Basato sull'IA",
+    aboutTitle: "Cos'è RedonBot?",
+    aboutP1: "RedonBot è una piattaforma IA pensata per i commercianti che vendono tramite app di messaggistica. Invece di rispondere manualmente a decine di messaggi al giorno, l'assistente risponde all'istante, capisce voce e immagini, presenta i prodotti nel dettaglio e registra gli ordini direttamente nella tua dashboard.",
+    aboutP2: "L'obiettivo è semplice: farti risparmiare tempo, non perdere mai un messaggio e aumentare le vendite con funzioni come il recupero dei carrelli abbandonati e le statistiche. Disponibile in oltre 10 lingue.",
+    featuresTitle: 'Funzionalità principali',
+    f1Title: 'Risposta automatica intelligente', f1Desc: 'Capisce le domande dei clienti e risponde in modo naturale, via testo, voce o foto prodotto.',
+    f2Title: 'Gestione completa degli ordini', f2Desc: 'Ogni ordine arriva direttamente, senza passare tra più app.',
+    f3Title: 'Recupero carrelli abbandonati', f3Desc: 'Ricorda automaticamente al cliente un ordine lasciato incompleto.',
+    f4Title: 'Team con permessi', f4Desc: 'Aggiungi collaboratori per gestire il negozio, ciascuno con permessi definiti.',
+    f5Title: 'Statistiche e report', f5Desc: 'Monitora messaggi, ordini e tasso di conversione del tuo negozio.',
+    f6Title: 'Pagamento elettronico istantaneo', f6Desc: 'Attiva il tuo abbonamento direttamente dal sito, senza attese né bonifici manuali.',
+  },
+  pt: {
+    eyebrow: 'A plataforma de IA para comércio conversacional',
+    heroTitle: 'Um assistente inteligente que responde aos seus clientes e vende por você, 24 horas por dia',
+    heroSub: 'O RedonBot conecta sua loja ao Facebook Messenger, Instagram e WhatsApp, e usa IA para responder mensagens de texto, voz e imagem, apresentar seus produtos, registrar pedidos e recuperar carrinhos abandonados — tudo automaticamente.',
+    seePlans: 'Ver planos', learnMore: 'Saiba mais',
+    statAlways: 'Resposta automática 24/7', statPlans: 'Idiomas disponíveis', statDzd: 'Com tecnologia de IA',
+    aboutTitle: 'O que é o RedonBot?',
+    aboutP1: 'O RedonBot é uma plataforma de IA feita para lojistas que vendem por meio de apps de mensagens. Em vez de responder manualmente a dezenas de mensagens por dia, o assistente responde instantaneamente, entende voz e imagem, apresenta seus produtos em detalhes e registra pedidos direto no seu painel.',
+    aboutP2: 'O objetivo é simples: economizar seu tempo, nunca perder uma mensagem de cliente e aumentar suas vendas com recursos como recuperação de carrinho abandonado e análises de desempenho. Disponível em mais de 10 idiomas.',
+    featuresTitle: 'Principais recursos',
+    f1Title: 'Resposta automática inteligente', f1Desc: 'Entende as perguntas dos clientes e responde naturalmente, por texto, voz ou até por foto de produto.',
+    f2Title: 'Gestão completa de pedidos', f2Desc: 'Cada pedido chega direto a você, sem alternar entre vários aplicativos.',
+    f3Title: 'Recuperação de carrinho abandonado', f3Desc: 'Lembra automaticamente o cliente que deixou um pedido incompleto.',
+    f4Title: 'Equipe com permissões', f4Desc: 'Adicione funcionários para ajudar a gerenciar a loja, cada um com permissões específicas.',
+    f5Title: 'Análises e relatórios', f5Desc: 'Acompanhe mensagens, pedidos e taxa de conversão da sua loja.',
+    f6Title: 'Pagamento eletrônico instantâneo', f6Desc: 'Ative sua assinatura direto no site, sem espera nem transferência manual.',
+  },
+  tr: {
+    eyebrow: 'Konuşmaya dayalı ticaret için yapay zeka platformu',
+    heroTitle: 'Müşterilerinize 7/24 yanıt veren ve sizin adınıza satış yapan akıllı asistan',
+    heroSub: 'RedonBot mağazanızı Facebook Messenger, Instagram ve WhatsApp ile bağlar; metin, sesli ve görsel mesajlara yanıt vermek, ürünlerinizi tanıtmak, siparişleri kaydetmek ve terk edilmiş sepetleri otomatik olarak geri kazanmak için yapay zekayı kullanır.',
+    seePlans: 'Planları gör', learnMore: 'Daha fazla bilgi',
+    statAlways: 'Kesintisiz otomatik yanıt', statPlans: 'Desteklenen dil', statDzd: 'Yapay zeka destekli',
+    aboutTitle: 'RedonBot nedir?',
+    aboutP1: 'RedonBot, mesajlaşma uygulamaları üzerinden satış yapan işletmeler için tasarlanmış bir yapay zeka platformudur. Günde onlarca mesajı elle yanıtlamak yerine, asistan anında yanıt verir, sesi ve görseli anlar, ürünlerinizi ayrıntılı olarak tanıtır ve siparişleri doğrudan panelinize kaydeder.',
+    aboutP2: 'Amaç basit: zamandan ve emekten tasarruf etmek, hiçbir müşteri mesajını kaçırmamak ve terk edilmiş sepet kurtarma ile performans analitiği gibi özelliklerle satışları artırmak. Platform 10’dan fazla dilde sunulur.',
+    featuresTitle: 'Öne çıkan özellikler',
+    f1Title: 'Akıllı otomatik yanıt', f1Desc: 'Müşteri sorularını anlar ve metin, ses hatta ürün fotoğrafı üzerinden doğal biçimde yanıtlar.',
+    f2Title: 'Eksiksiz sipariş yönetimi', f2Desc: 'Her sipariş, birden fazla uygulama arasında geçiş yapmadan doğrudan size ulaşır.',
+    f3Title: 'Terk edilmiş sepet kurtarma', f3Desc: 'Siparişini tamamlamadan bırakan müşteriyi otomatik olarak hatırlatır.',
+    f4Title: 'Yetkilendirilmiş ekip hesapları', f4Desc: 'Mağazayı birlikte yönetmek için, her biri kendi yetkisine sahip çalışanlar ekleyin.',
+    f5Title: 'Analiz ve raporlar', f5Desc: 'Mesaj sayısı, siparişler ve ziyaretçi dönüşüm oranını takip edin.',
+    f6Title: 'Anında elektronik ödeme', f6Desc: 'Aboneliğinizi siteden doğrudan etkinleştirin, bekleme veya manuel transfer olmadan.',
+  },
+  ru: {
+    eyebrow: 'ИИ-платформа для торговли через мессенджеры',
+    heroTitle: 'Умный ассистент, который отвечает вашим клиентам и продаёт за вас круглосуточно',
+    heroSub: 'RedonBot подключает ваш магазин к Facebook Messenger, Instagram и WhatsApp и использует ИИ для ответа на текстовые, голосовые и графические сообщения, показа товаров, оформления заказов и автоматического возврата брошенных корзин.',
+    seePlans: 'Смотреть тарифы', learnMore: 'Узнать больше',
+    statAlways: 'Ответы 24/7', statPlans: 'Поддерживаемых языков', statDzd: 'На основе ИИ',
+    aboutTitle: 'Что такое RedonBot?',
+    aboutP1: 'RedonBot — это ИИ-платформа для продавцов, работающих через мессенджеры. Вместо того чтобы вручную отвечать на десятки сообщений в день, ассистент отвечает мгновенно, понимает голос и изображения, подробно представляет товары и сразу заносит заказы в вашу панель управления.',
+    aboutP2: 'Цель проста: экономить ваше время, не пропускать ни одного сообщения клиента и увеличивать продажи благодаря таким функциям, как возврат брошенных корзин и аналитика. Платформа доступна на более чем 10 языках.',
+    featuresTitle: 'Основные возможности',
+    f1Title: 'Умные автоответы', f1Desc: 'Понимает вопросы клиентов и отвечает естественно — текстом, голосом или даже по фото товара.',
+    f2Title: 'Полное управление заказами', f2Desc: 'Каждый заказ поступает напрямую, без переключения между несколькими приложениями.',
+    f3Title: 'Возврат брошенных корзин', f3Desc: 'Автоматически напоминает клиенту о незавершённом заказе.',
+    f4Title: 'Команда с ролями доступа', f4Desc: 'Добавляйте сотрудников для управления магазином, у каждого — свои права.',
+    f5Title: 'Аналитика и отчёты', f5Desc: 'Отслеживайте сообщения, заказы и конверсию посетителей в клиентов.',
+    f6Title: 'Мгновенная онлайн-оплата', f6Desc: 'Активируйте подписку прямо на сайте — без ожидания и ручных переводов.',
+  },
+  zh: {
+    eyebrow: '对话式电商的人工智能平台',
+    heroTitle: '智能助手全天候回复客户并为您完成销售',
+    heroSub: 'RedonBot 将您的店铺连接到 Facebook Messenger、Instagram 和 WhatsApp,并利用人工智能自动回复文字、语音和图片消息、展示商品、记录订单并挽回废弃购物车。',
+    seePlans: '查看套餐', learnMore: '了解更多',
+    statAlways: '全天候自动回复', statPlans: '支持语言数', statDzd: '人工智能驱动',
+    aboutTitle: 'RedonBot 是什么?',
+    aboutP1: 'RedonBot 是专为通过聊天应用销售的商家打造的人工智能平台。助手可以即时回复客户,理解语音和图片,详细展示商品,并将订单直接记录到您的控制台,而无需每天手动回复大量消息。',
+    aboutP2: '目标很简单:为您节省时间和精力,不错过任何客户消息,并借助废弃购物车挽回和数据分析等功能提升销售额。平台支持超过 10 种语言,服务不同市场的商家。',
+    featuresTitle: '核心功能',
+    f1Title: '智能自动回复', f1Desc: '理解客户问题并自然回应——支持文字、语音,甚至商品图片。',
+    f2Title: '完整订单管理', f2Desc: '每笔订单直接送达,无需在多个应用之间切换。',
+    f3Title: '废弃购物车挽回', f3Desc: '自动提醒未完成下单的客户,把更多访问转化为销售。',
+    f4Title: '团队权限管理', f4Desc: '添加员工协助管理店铺,每人拥有各自的权限。',
+    f5Title: '数据分析与报表', f5Desc: '跟踪店铺表现:消息量、订单量与访客转化率。',
+    f6Title: '即时在线支付', f6Desc: '直接在网站上激活订阅,无需等待或手动转账。',
+  },
+};
+</script>
+<script src="/assets/site-common.js"></script>
+</body>
+</html>
